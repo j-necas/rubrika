@@ -1,0 +1,12 @@
+{
+  "name": "rubrika",
+  "owner": {"name": "Rubrika contributors"},
+  "description": "Rubrika – plugin pro Claude na hledání předků v archivech.",
+  "plugins": [
+    {
+      "name": "rubrika",
+      "source": "./plugin",
+      "description": "Hledání předků v digitalizovaných pramenech sedmi českých archivů, s výřezy, přepisy a citacemi. SOA Třeboň: pouze katalog a odkazy. Verze pro vyzkoušení."
+    }
+  ]
+}

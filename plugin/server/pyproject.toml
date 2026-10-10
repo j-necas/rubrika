@@ -1,0 +1,37 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "rubrika"
+version = "0.13.2"
+description = "Rubrika – hledání předků v archivech (MCP server pluginu pro Claude)"
+# Upper bound: pinned native wheels (lxml, Pillow, pydantic-core) may not exist for a newer Python yet.
+requires-python = ">=3.12,<3.15"
+license = "MIT"
+dependencies = [
+  "mcp==2.2.0",
+  "httpx==0.28.1", "httpcore==1.0.9", "h2==4.3.0", "beautifulsoup4==4.14.3",
+  "lxml==6.1.1", "Pillow==12.3.0", "pydantic==2.13.4",
+  "pydantic-settings==2.14.1"
+]
+
+[project.optional-dependencies]
+dev = ["pytest==9.0.2", "pytest-asyncio==1.3.0"]
+
+[project.scripts]
+rubrika = "rubrika.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+# The plugin starts main.py with `uv run`: install only the dependencies, never build the package.
+[tool.uv]
+package = false
+# cryptography (required by the MCP SDK) ships no wheels for Intel Macs since 49.0 and for Windows on ARM
+# except 46.0.0–46.0.3; those platforms get the last release with wheels, so no one has to compile Rust.
+# scripts/check_wheels.py (run in CI) checks that every supported platform installs from wheels alone.
+constraint-dependencies = [
+  "cryptography<49; sys_platform == 'darwin' and platform_machine == 'x86_64'",
+  "cryptography<=46.0.3; sys_platform == 'win32' and platform_machine == 'ARM64'",
+]

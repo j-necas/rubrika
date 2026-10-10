@@ -1,0 +1,20 @@
+{
+  "name": "rubrika",
+  "interface": {
+    "displayName": "Rubrika"
+  },
+  "plugins": [
+    {
+      "name": "rubrika",
+      "source": {
+        "source": "local",
+        "path": "./plugin"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Research"
+    }
+  ]
+}

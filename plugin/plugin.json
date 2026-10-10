@@ -1,0 +1,33 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "rubrika",
+  "version": "0.13.2",
+  "description": "Hledání předků v matrikách, pozemkových knihách, katastrech a sčítacích operátech Moravského zemského archivu, Státního oblastního archivu v Hradci Králové a v matrikách SOA Plzeň (Porta fontium), SOA Praha, SOA Třeboň (katalog a odkazy), Archivu hlavního města Prahy (včetně Soupisu pražského obyvatelstva a sčítání) a židovských matrikách Národního archivu, s doklady ze skutečných snímků. Instalací a použitím přebíráte podmínky užití těchto archivních aplikací; snímky slouží jen vašemu vlastnímu bádání.",
+  "author": {
+    "name": "Rubrika contributors"
+  },
+  "homepage": "https://github.com/j-necas/rubrika",
+  "repository": "https://github.com/j-necas/rubrika",
+  "license": "MIT",
+  "keywords": [
+    "genealogie",
+    "matriky",
+    "archiv",
+    "rodokmen"
+  ],
+  "extensions": {
+    "com.openai": {
+      "interface": {
+        "displayName": "Rubrika",
+        "shortDescription": "Hledání předků v archivech",
+        "longDescription": "Rubrika pomáhá hledat předky v digitalizovaných českých archivech. Asistent najde obec a prameny, otevře dostupné snímky, čte rukopis a ukáže výřez, pracovní přepis a odkaz na originál. Nálezy uloží pro pokračování a sestaví z nich rodokmen (GEDCOM). Podporuje MZA, SOA Hradec Králové, SOA Plzeň, SOA Praha, SOA Třeboň, Archiv hlavního města Prahy a Národní archiv. V Třeboni zpřístupňuje pouze katalog a odkazy; snímky dodává uživatel. Veřejná beta: výsledky je třeba kontrolovat proti pramenům.",
+        "developerName": "Rubrika contributors",
+        "websiteURL": "https://github.com/j-necas/rubrika",
+        "defaultPrompt": [
+          "Najdi narození Jana Nováka v Třebíči mezi lety 1840 a 1845.",
+          "Kdo žil v roce 1880 v domě č. 7 v Kroměříži?"
+        ]
+      }
+    }
+  }
+}

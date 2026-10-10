@@ -1,0 +1,38 @@
+name: Chyba Rubriky
+description: Instalace, archivní přístup nebo chování nástrojů
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Toto hlášení je veřejné. Použijte smyšlené zadání nebo veřejnou historickou osobu.
+        Nepřikládejte rodinná data, celou konverzaci, databázi, tokeny ani archivní snímky.
+        Bezpečnostní chyby hlaste podle SECURITY.md.
+  - type: input
+    id: environment
+    attributes:
+      label: Verze a prostředí
+      description: Verze Rubriky, aplikace a operační systém
+      placeholder: Rubrika 0.13.2, Claude Desktop, macOS
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Kroky k zopakování
+      description: Archiv, smyšlené zadání nebo veřejný odkaz, provedené kroky
+    validations:
+      required: true
+  - type: textarea
+    id: behavior
+    attributes:
+      label: Očekávaný a skutečný výsledek
+      description: Připojte kód chyby, pokud ho asistent uvedl.
+    validations:
+      required: true
+  - type: checkboxes
+    id: privacy
+    attributes:
+      label: Soukromí
+      options:
+        - label: Hlášení neobsahuje soukromá rodinná data, tajné údaje ani archivní snímky.
+          required: true
