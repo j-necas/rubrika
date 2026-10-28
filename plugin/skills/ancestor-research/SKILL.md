@@ -384,6 +384,11 @@ archive:…, global:… pro aplikaci MZA, book:…); obnoví se zítra. Jiný ar
 nebo jiná kniha mohou pokračovat, stejný ne.
 Při BUDGET_EXCEEDED, TOOL_TIMEOUT, RATE_LIMITED nebo SOURCE_ACCESS_DENIED
 nezakládej nové hledání a nezkoušej jiné domény/proxy pro obcházení.
+Neukončuj, dokud máš konkrétní vodítko, které jde dotáhnout: řádek rejstříku
+s rokem nebo stranou, místo narození ze zápisu o úmrtí či sňatku, další část
+knihy nebo další farnost z find_place. Vodítko nejdřív dotáhni k původnímu
+zápisu; candidate_found znamená uloženého kandidáta z původního zápisu, ne
+údaj z rejstříku nebo z jiného zápisu.
 Nemáš-li jak pokračovat, ulož dostupné poznámky a použij finish_research s odpovídajícím stop_reason:
 candidate_found/scope_reviewed/budget_exceeded/unreadable/source_unavailable/user_stopped.
 SOURCE_ACCESS_DENIED s details.reason=bot_protection znamená, že archiv chrání
