@@ -165,11 +165,11 @@ async def test_each_image_reports_what_it_cost_the_archive(auto_service):
 
 def test_town_parts_names_parts_with_books_of_their_own():
     from rubrika.service import town_parts
-    places=[{'label':'Třebíč (Trebitsch), okres: Třebíč'},
-            {'label':'Jejkov (Jeikow, Třebíč-Jejkov), obec: Třebíč, okres: Třebíč'},
-            {'label':'Podklášteří (Unterkloster, Třebíč-Podklášteří), obec: Třebíč, okres: Třebíč'},
-            {'label':'Všeobecná nemocnice Třebíč-Jejkov, obec: Třebíč, okres: Třebíč'},
-            {'label':'Číchov (třebíčská část), okres: Třebíč'},
-            {'label':'Lhota, obec: Třebíčko, okres: Brno'}]
-    assert town_parts('Třebíč',places)==['Jejkov','Podklášteří','Všeobecná nemocnice Třebíč-Jejkov']
-    assert town_parts('Hodonín',places)==[]
+    places=[{'label':'Demo Město (Demostadt), okres: Demo'},
+            {'label':'Horní Ves (Oberdorf, Demo Město-Horní Ves), obec: Demo Město, okres: Demo'},
+            {'label':'Podhradí (Unterburg, Demo Město-Podhradí), obec: Demo Město, okres: Demo'},
+            {'label':'Nemocnice Demo Město-Horní Ves, obec: Demo Město, okres: Demo'},
+            {'label':'Lhota (demoměstská část), okres: Demo'},
+            {'label':'Lhota, obec: Demo Městečko, okres: Jiný'}]
+    assert town_parts('Demo Město',places)==['Horní Ves','Podhradí','Nemocnice Demo Město-Horní Ves']
+    assert town_parts('Demo Lhota',places)==[]

@@ -66,7 +66,7 @@ MANUAL_HINT=("Snímek uložený z prohlížeče (Uložit obrázek jako, nebo sn�
 
 
 def town_parts(term,places):
-    """Places the catalogue files under the searched town ("…, obec: Třebíč"): parts and parishes with books of their own."""
+    """Places the catalogue files under the searched town ("…, obec: <town>"): parts and parishes with books of their own."""
     pattern=re.compile(r"\bobec: "+re.escape(term)+r"(,|$)",re.I)
     return [p.get("label","").split(" (")[0].split(",")[0] for p in places if pattern.search(p.get("label",""))]
 
