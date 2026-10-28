@@ -18,5 +18,5 @@ def test_archive_prefixes_mark_only_single_archive_tools():
     SINGLE_ARCHIVE_TOOLS=set()   # a tool serving exactly one archive carries its code as prefix; none today
     assert {t for t in tools if t.split('_',1)[0] in ARCHIVES}==SINGLE_ARCHIVE_TOOLS
     assert tools=={'start_research','revise_research','get_research_status','finish_research','view_scan','zoom_scan',
-                   'show_saved_evidence','record_finding','list_findings','export_family_tree',
+                   'show_saved_evidence','record_finding','list_findings','export_family_tree','save_family_package',
                    'list_archives','find_place','list_sources','open_source','import_scan','continue_research'}

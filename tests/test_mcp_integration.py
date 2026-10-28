@@ -15,7 +15,9 @@ async def test_real_sdk_lists_typed_tools_and_returns_image(auto_service):
         tools=await client.list_tools()
         # SDK Client returns ListToolsResult (not a list of raw dictionaries).
         assert {t.name for t in tools.tools}=={'start_research','revise_research','get_research_status','finish_research','view_scan','zoom_scan',
-            'show_saved_evidence','record_finding','list_findings','export_family_tree','list_archives','find_place','list_sources','open_source','import_scan','continue_research'}
+            'show_saved_evidence','record_finding','list_findings','export_family_tree','save_family_package','list_archives','find_place','list_sources','open_source','import_scan','continue_research'}
+        package={t.name:t for t in tools.tools}['save_family_package']
+        assert package.annotations.read_only_hint is False and package.annotations.open_world_hint is False
         result=await client.call_tool('start_research',{'query':{'raw_query':'SYNTHETIC SDK TEST','event_type':'birth','year_from':1840,'year_to':1845}})
         assert not result.is_error
         sid=json.loads(result.content[0].text)['research_id']
@@ -29,6 +31,10 @@ async def test_real_sdk_lists_typed_tools_and_returns_image(auto_service):
         assert not result.is_error
         assert result.content[1].type=='image' and result.content[1].data
         image_id=json.loads(result.content[0].text)['image']['image_id']
+        result=await client.call_tool('view_scan',{'research_id':sid,'source_id':bid,'scan_number':1})
+        assert not result.is_error and result.content[1].type=='image'
+        result=await client.call_tool('view_scan',{'research_id':sid})
+        assert result.is_error
         result=await client.call_tool('record_finding',{'research_id':sid,'idempotency_key':'sdk-tree',
             'observation':{'kind':'record','image_id':image_id,'text':'TEST ONLY'}})
         oid=json.loads(result.content[0].text)['observation_id']

@@ -18,6 +18,7 @@ QUAY={"documented":3,"probable":2,"hypothesis":1}
 UNDOCUMENTED_NOTE={"probable":"Nedoloženo (pravděpodobný údaj).","hypothesis":"Hypotéza, nedoloženo."}
 CITABLE_KINDS=("record","index_entry")
 CHUNK=200
+OPEN_ENDS_MAX=30
 
 
 def gedcom_date(d:TreeDate) -> str:
@@ -150,7 +151,7 @@ def _age(age:str|None) -> tuple[str|None,str|None]:
     return None,"Věk: "+age
 
 
-def _event_lines(e:TreeEvent,level:int,sources:dict,observations:dict) -> tuple[list[str],int]:
+def _event_lines(e:TreeEvent,level:int,sources:dict,observations:dict,media:dict) -> tuple[list[str],int]:
     tag=TAGS[e.type]
     head=gedcom_text(level,tag,e.value if e.type=="occupation" and e.value else "")
     body=[]
@@ -175,11 +176,18 @@ def _event_lines(e:TreeEvent,level:int,sources:dict,observations:dict) -> tuple[
         if user: body+=gedcom_text(level+2,"NOTE","Snímek dodal uživatel, odkaz neověřen.")
         if ev.get("citation"): body+=gedcom_text(level+2,"NOTE",ev["citation"])
         if ev["viewer_url"]: body+=gedcom_text(level+2,"NOTE",("Odkaz od uživatele (neověřen): " if user else "")+ev["viewer_url"])
+        crop=media.get((ref.research_id,ref.observation_id))
+        if crop:
+            body+=[f"{level+2} OBJE",*gedcom_text(level+3,"FILE",crop),f"{level+4} FORM jpg",
+                   *gedcom_text(level+3,"TITL","Výřez zápisu, "+page)]
     if not (e.date or e.place) and e.type not in ("occupation","residence"): head[0]+=" Y"
     return [*head,*body],len(e.sources)
 
 
-def to_gedcom(tree:FamilyTree,observations:dict,books:dict,*,variant:str,source_mode:str,today:date) -> tuple[str,int]:
+def to_gedcom(tree:FamilyTree,observations:dict,books:dict,*,variant:str,source_mode:str,today:date,
+              media:dict|None=None) -> tuple[str,int]:
+    """media: {(research_id, observation_id): relative path of the saved crop}; only a package written to disk has one."""
+    media=media or {}
     xref={p.id:f"I{i}" for i,p in enumerate(tree.persons,1)}
     fref={f.id:f"F{i}" for i,f in enumerate(tree.families,1)}
     sources={}
@@ -209,7 +217,7 @@ def to_gedcom(tree:FamilyTree,observations:dict,books:dict,*,variant:str,source_
         if surname: lines.append(f"2 SURN {surname}")
         lines.append(f"1 SEX {p.sex}")
         for e in p.events:
-            block,n=_event_lines(e,1,sources,observations)
+            block,n=_event_lines(e,1,sources,observations,media)
             lines+=block; citations+=n
         if p.note: lines+=gedcom_text(1,"NOTE",p.note)
         if p.id in famc: lines.append(f"1 FAMC @{famc[p.id]}@")
@@ -220,7 +228,7 @@ def to_gedcom(tree:FamilyTree,observations:dict,books:dict,*,variant:str,source_
         if f.wife: lines.append(f"1 WIFE @{xref[f.wife]}@")
         lines+=[f"1 CHIL @{xref[c]}@" for c in f.children]
         if f.marriage:
-            block,n=_event_lines(f.marriage,1,sources,observations)
+            block,n=_event_lines(f.marriage,1,sources,observations,media)
             lines+=block; citations+=n
     repos={}  # archive name -> R<n>, in order of first use
     for book,sid in sources.items():
@@ -274,6 +282,56 @@ def to_mermaid(tree:FamilyTree) -> str:
     return "\n".join(out)
 
 
+def _anchor(p:TreePerson,tree:FamilyTree) -> dict|None:
+    """The person's earliest dated event, their marriage included: where the next search starts."""
+    dated=[e for e in p.events if e.date]
+    dated+=[f.marriage for f in tree.families if p.id in (f.husband,f.wife) and f.marriage and f.marriage.date]
+    if not dated: return None
+    e=min(dated,key=lambda e:e.date.year)
+    return {"event":e.type,"year":e.date.year,"place":e.place,"confidence":e.confidence}
+
+
+def open_ends(tree:FamilyTree) -> list[dict]:
+    """Where the direct line stops: the root and its ancestors without a documented birth or baptism, without
+    known parents, or whose parents' marriage is not documented. Deepest generation first."""
+    persons={p.id:p for p in tree.persons}
+    family_of={c:f for f in tree.families for c in f.children}
+    out,seen,queue=[],set(),[(tree.root_person,0,None)]
+    while queue:
+        pid,generation,child=queue.pop(0)
+        if pid in seen: continue
+        seen.add(pid)
+        p,f=persons[pid],family_of.get(pid)
+        missing=[] if any(_documented(e) for e in p.events if e.type in ("birth","baptism")) else ["birth"]
+        if not f: missing.append("parents")
+        else:
+            missing+=[role for role,x in (("father",f.husband),("mother",f.wife)) if not x]
+            if not _documented(f.marriage): missing.append("parents_marriage")
+        if missing:
+            anchor=_anchor(p,tree)
+            out.append({"person":_name(p),"person_id":pid,"generation":generation,"missing":missing,
+                        **({"anchor":anchor} if anchor else {"known_from_child":child} if child else {})})
+        if f: queue+=[(x,generation+1,_name(p)) for x in (f.husband,f.wife) if x]
+    return sorted(out,key=lambda x:-x["generation"])
+
+
+def prepare(tree:FamilyTree,observations:dict,variant:str) -> tuple[FamilyTree,list[str],list[dict]]:
+    """Validate, note where the line ends (on the whole tree) and apply the variant."""
+    validate(tree,observations)
+    ends=open_ends(tree)
+    warnings=[]
+    if variant=="documented_only": tree,warnings=documented_only(tree)
+    return tree,warnings,ends
+
+
+def summary(tree:FamilyTree,citations:int,warnings:list[str],ends:list[dict]) -> dict:
+    return {"persons":len(tree.persons),"families":len(tree.families),"citations":citations,
+            "undocumented":[{"person":who,"event":e.type,"confidence":e.confidence}
+                            for who,e in _events(tree) if not _documented(e)],
+            "warnings":warnings,"open_ends":ends[:OPEN_ENDS_MAX],
+            **({"open_ends_total":len(ends)} if len(ends)>OPEN_ENDS_MAX else {})}
+
+
 def _filename(title:str) -> str:
     ascii_=unicodedata.normalize("NFKD",title).encode("ascii","ignore").decode()
     return re.sub(r"[^a-z0-9]+","-",ascii_.lower()).strip("-")[:60].strip("-") or "rodokmen"
@@ -281,13 +339,7 @@ def _filename(title:str) -> str:
 
 def export_family_tree(tree:FamilyTree,observations:dict,books:dict,*,variant:str,source_mode:str,today:date) -> dict:
     """observations: {(research_id, observation_id): saved finding}; books: {book_id: {title, url}}."""
-    validate(tree,observations)
-    warnings=[]
-    if variant=="documented_only": tree,warnings=documented_only(tree)
+    tree,warnings,ends=prepare(tree,observations,variant)
     gedcom,citations=to_gedcom(tree,observations,books,variant=variant,source_mode=source_mode,today=today)
     return {"variant":variant,"gedcom":gedcom,"mermaid":to_mermaid(tree),
-            "suggested_filename":_filename(tree.title),
-            "summary":{"persons":len(tree.persons),"families":len(tree.families),"citations":citations,
-                       "undocumented":[{"person":who,"event":e.type,"confidence":e.confidence}
-                                       for who,e in _events(tree) if not _documented(e)],
-                       "warnings":warnings}}
+            "suggested_filename":_filename(tree.title),"summary":summary(tree,citations,warnings,ends)}

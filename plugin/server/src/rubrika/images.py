@@ -123,6 +123,11 @@ class Zoomify:
 OVERVIEW_TIER_TOLERANCE = 0.85
 
 
+def _cause(e):
+    """Why the archive did not deliver (status, timeout, network), so the caller can tell a passing outage from a lasting one."""
+    return {"cause":e.code,"cause_message":e.message,**{k:v for k,v in e.details.items() if k in ("status","reason","error_type")}}
+
+
 def parse_zoomify(data: bytes, url: str, max_pixels: int) -> Zoomify:
     if b"<!DOCTYPE" in data.upper() or b"<!ENTITY" in data.upper():
         raise ResearchError("PARSE_ERROR", "XML s externími entitami není povoleno.")
@@ -240,7 +245,7 @@ class ImageService:
         except ResearchError as e:
             if e.code in ("SOURCE_UNAVAILABLE","INCOMPLETE_IMAGE"):
                 self.source.invalidate(url)
-                raise ResearchError("INCOMPLETE_IMAGE","Chybí potřebná dlaždice; stránka není přečtená.",**where) from e
+                raise ResearchError("INCOMPLETE_IMAGE","Chybí potřebná dlaždice; stránka není přečtená.",**where,**_cause(e)) from e
             raise
 
     async def render_dzi(self,sid,owner,d:DZI,bbox,side):
@@ -420,23 +425,24 @@ class ImageService:
         except ResearchError as e:
             if e.code in ("SOURCE_UNAVAILABLE","INCOMPLETE_IMAGE"):
                 self.source.invalidate(url)
-                raise ResearchError("INCOMPLETE_IMAGE","Výřez se nepodařilo stáhnout celý; stránka není přečtená.") from e
+                raise ResearchError("INCOMPLETE_IMAGE","Výřez se nepodařilo stáhnout celý; stránka není přečtená.",**_cause(e)) from e
             raise
         if image.size!=(tw,th):
             self.source.invalidate(url)
             raise ResearchError("INCOMPLETE_IMAGE","IIIF vrátil jiné než požadované rozměry.")
         return image,[url]
 
-    async def get(self,sid,owner,page:Page,region=None,role="overview") -> ToolOutput:
+    async def get(self,sid,owner,page:Page,region=None,role="overview",side=None) -> ToolOutput:
         reserved=[]      # full-resolution pixels held for this call; returned when the render does not complete
         try:
-            return await self._get(sid,owner,page,region,role,reserved)
+            return await self._get(sid,owner,page,region,role,reserved,side)
         except BaseException:
             for pixels in reserved: self.store.release_full_res(page.page_id,pixels)
             raise
 
-    async def _get(self,sid,owner,page:Page,region,role,reserved) -> ToolOutput:
+    async def _get(self,sid,owner,page:Page,region,role,reserved,side=None) -> ToolOutput:
         self.store.search(sid,owner)
+        requests_before=self.store.usage(sid,owner)["archive_requests"]
         descriptor,width,height=await self.descriptor(sid,owner,page)
         region=region or (0,0,width,height)
         x,y,w,h=region
@@ -444,7 +450,7 @@ class ImageService:
             raise ResearchError("INVALID_REGION","Neplatná oblast zdrojového snímku.")
         local=page.source_type=="user_supplied"     # imported by the user: no archive, so no per-book network-side cap either
         if not local: self.store.check_book_image(page.book_id)   # charged only after a successful render
-        side=self.cfg.preview_side if role=="overview" else self.cfg.crop_side
+        side=side or (self.cfg.preview_side if role=="overview" else self.cfg.crop_side)
         full_res=0
         sketch_meta=None
         if isinstance(descriptor,Zoomify):
@@ -482,7 +488,9 @@ class ImageService:
                 **({"effective_scale":round(sketch_meta["effective_scale"],4),"low_resolution":sketch_meta["low_resolution"]} if sketch_meta else {}))
             result=ToolOutput(data={"ok":True,"source_mode":self.source.mode,"image":ref.model_dump(),
                 "instruction":"Souřadnice výřezu zadávejte v pixelech tohoto obrázku. Náhled není důkazem prohledání.",
-                "provenance":"Source pixels only; JPEG compression and resizing, no generated text."},
+                "provenance":"Source pixels only; JPEG compression and resizing, no generated text.",
+                # What this image cost the archive (tiles and descriptors not yet cached), so the model can size its next crop.
+                "archive_requests":self.store.usage(sid,owner)["archive_requests"]-requests_before},
                 image_b64=base64.b64encode(raw).decode(),mime_type="image/jpeg")
             if sketch_meta and sketch_meta["low_resolution"]:
                 result.data["low_resolution"]=True

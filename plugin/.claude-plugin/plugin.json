@@ -1,7 +1,7 @@
 {
   "name": "rubrika",
   "displayName": "Rubrika",
-  "version": "0.13.2",
+  "version": "0.14.0",
   "description": "Hledání předků v matrikách, pozemkových knihách, katastrech a sčítacích operátech Moravského zemského archivu, Státního oblastního archivu v Hradci Králové a v matrikách SOA Plzeň (Porta fontium), SOA Praha, SOA Třeboň (katalog a odkazy), Archivu hlavního města Prahy (včetně Soupisu pražského obyvatelstva a sčítání) a židovských matrikách Národního archivu, s doklady ze skutečných snímků. Instalací a použitím přebíráte podmínky užití těchto archivních aplikací; snímky slouží jen vašemu vlastnímu bádání.",
   "author": {
     "name": "Rubrika contributors"

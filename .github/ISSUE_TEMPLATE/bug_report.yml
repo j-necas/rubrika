@@ -12,7 +12,7 @@ body:
     attributes:
       label: Verze a prostředí
       description: Verze Rubriky, aplikace a operační systém
-      placeholder: Rubrika 0.13.2, Claude Desktop, macOS
+      placeholder: Rubrika 0.14.0, Claude Desktop, macOS
     validations:
       required: true
   - type: textarea

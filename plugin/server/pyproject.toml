@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "rubrika"
-version = "0.13.2"
+version = "0.14.0"
 description = "Rubrika – hledání předků v archivech (MCP server pluginu pro Claude)"
 # Upper bound: pinned native wheels (lxml, Pillow, pydantic-core) may not exist for a newer Python yet.
 requires-python = ">=3.12,<3.15"

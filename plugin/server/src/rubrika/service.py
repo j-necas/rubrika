@@ -36,6 +36,8 @@ from .sources import PF_HOST, SOAPRAHA_HOST, TREBON_HOST, VCA_HOST
 from .territory import archives_for_district, district_name, mza_sketch_district
 from .trebon import unit_relevance as trebon_unit_relevance, FUND_TITLE, PAGE_ID as TREBON_PAGE_ID, scan_citation as trebon_scan_citation, PLACE_ID as TREBON_PLACE_ID, TrebonCatalog, book_id_from_url as trebon_book_id_from_url, book_id_of as trebon_book_id, sort_key as trebon_sort_key, kind_of_place as trebon_kind_of_place
 from .tree import export_family_tree
+from .package import write_package
+from . import __version__
 
 
 CENSUS_ORDER_NOTE=(" Snímky sčítacího operátu jdou podle čísel popisných v rozsahu jednotky (viz house_numbers); "
@@ -55,8 +57,18 @@ SKETCH_NOTE=("scan_number 1 je líc skice, 2 rub (je-li). Skica je mapa katastru
              "1 požadavek, a tedy málo čitelný), výřez až 64 požadavků (asi 1 s na požadavek); volte malé oblasti. Rok je rok vyhotovení nebo revize skice; "
              "ke stejnému katastru patří v D 10 parcelní protokol (kind=\"land_records\", fund_marks=[\"D 10\"]).")
 USER_SUPPLIED_NOTE="Snímek dodal uživatel, odkaz neověřen."
+PACKAGE_NOTE=("Balíček obsahuje jména, data a výřezy zápisů. Zůstává jen na tomto počítači; komu ho pošlete, "
+              "rozhodujete vy. Rubrika ho nikam neodesílá.")
+RELEASES_URL="https://github.com/j-necas/rubrika/releases/latest"
+MAX_KNOWN_POINTS=40
 MANUAL_HINT=("Snímek uložený z prohlížeče (Uložit obrázek jako, nebo snímek obrazovky) lze do Rubriky přenést nástrojem import_scan: "
              "nejdřív bez file_name (výpis nedávných obrázků ve stažených souborech), pak s názvem souboru, citací a odkazem.")
+
+
+def town_parts(term,places):
+    """Places the catalogue files under the searched town ("…, obec: Třebíč"): parts and parishes with books of their own."""
+    pattern=re.compile(r"\bobec: "+re.escape(term)+r"(,|$)",re.I)
+    return [p.get("label","").split(" (")[0].split(",")[0] for p in places if pattern.search(p.get("label",""))]
 
 
 class ResearchService:
@@ -371,6 +383,10 @@ class ResearchService:
                 continue
             searched.append(code); warnings+=warns
             places+=[{**p,"archive":code} for p in found]
+        parts=town_parts(term.strip(),places)
+        if parts:
+            warnings.append(f"{term.strip()} má části nebo farnosti s vlastními knihami ({', '.join(parts)}). Nevíte-li, ve které části "
+                            "se událost stala, projděte knihy (nejdřív rejstříky) všech, ne jen knihy hlavního místa.")
         out={"kind":kind,"places":places,"ambiguous":len(places)>1,"catalog_exhaustive":False,
              "searched":searched,"not_searched":not_searched,"warnings":warnings}
         notices=[ARCHIVES[c].terms_notice for c in searched if ARCHIVES[c].terms_notice]
@@ -397,7 +413,46 @@ class ResearchService:
 
     async def tool_open_source(self,owner,research_id,source_id:str,cursor:int=0,limit:int=20):
         if not isinstance(source_id,str) or not 1<=len(source_id)<=100: raise ValueError()
-        return await self._open(owner=owner,research_id=research_id,source_id=source_id,cursor=cursor,limit=limit)
+        out=await self._open(owner=owner,research_id=research_id,source_id=source_id,cursor=cursor,limit=limit)
+        unit_id=(out.get("unit") or {}).get("source_id") or source_id
+        points=self._known_points(research_id,owner,{source_id,unit_id})
+        if points:
+            out["known_points"]=points[-MAX_KNOWN_POINTS:]
+            years=[p["year"] for p in points if p.get("year")]
+            if any(b<a for a,b in zip(years,years[1:])):
+                out["warnings"]=[*out.get("warnings",[]),"Přečtené roky s rostoucím číslem snímku místy klesají: kniha má zřejmě "
+                                 "více částí (obce, oddíly, přílohy). Najděte hranice částí a odhad polohy počítejte jen uvnitř jedné části."]
+        return out
+
+    def _known_points(self,sid,owner,book_ids:set):
+        """What this research already read in a book, one row per scan (the latest year and section win), so navigation
+        interpolates between real readings and keeps them after an interruption."""
+        rows={}
+        for o in self.store.observations(sid,owner):
+            ev=o.get("evidence") or {}
+            n=ev.get("scan_number")
+            if o.get("book_id") not in book_ids or not isinstance(n,int) or o["kind"]=="next_step": continue
+            row=rows.setdefault(n,{"scan_number":n,"year":None,"section":None})
+            if o.get("year"): row["year"]=o["year"]
+            if o.get("section"): row["section"]=o["section"]
+            row.update(kind=o["kind"],observation_id=o["observation_id"],text=(o.get("text") or "")[:160])
+        return [rows[n] for n in sorted(rows)]
+
+    def _link_manifest(self,sid,owner,book_id,pages):
+        self.store.link(sid,owner,"manifest",book_id,{"manifest_sha256":pages[0].manifest_sha256,"total":len(pages),
+                        "page_ids":[p.page_id for p in pages],"scan_numbers":[p.scan_number for p in pages]})
+
+    def _page_at(self,sid,owner,source_id,scan_number):
+        """page_id of a scan in an opened source, so a jump needs no extra open_source call; nothing is fetched."""
+        manifest=next((x for x in self.store.links(sid,owner,"manifest") if x["id"]==source_id),None)
+        if not manifest or not self.store.has_link(sid,owner,"opened_book",source_id):
+            raise ResearchError("NOT_FOUND","Pramen není v tomto hledání otevřen; nejprve open_source (source_id z jeho unit).")
+        numbers=manifest.get("scan_numbers") or [(self.store.entity("page",p) or {}).get("scan_number") for p in manifest["page_ids"]]
+        if scan_number in numbers: return manifest["page_ids"][numbers.index(scan_number)]
+        known=[n for n in numbers if isinstance(n,int)]
+        if len(known)<len(numbers):     # a manifest saved before scan numbers were kept, with scans never listed
+            raise ResearchError("NOT_FOUND",f"Snímek {scan_number} zatím není v seznamu snímků; otevřete pramen znovu přes open_source.")
+        raise ResearchError("NOT_FOUND",f"Snímek {scan_number} v prameni není"+(f" (snímky {min(known)}–{max(known)})." if known else "."))
 
     async def _acta_places(self,owner,research_id,term:str):
         places=await self.catalog.places(research_id,owner,term)
@@ -447,9 +502,7 @@ class ResearchService:
             raise ResearchError("NOT_FOUND","Kniha musí pocházet z katalogového výběru nebo z odkazu v zadání.")
         self.store.link(research_id,owner,"opened_book",book_id,book.model_dump())
         pages=await self.catalog.pages(research_id,owner,book)
-        self.store.link(research_id,owner,"manifest",book_id,
-                        {"manifest_sha256":pages[0].manifest_sha256,"total":len(pages),
-                         "page_ids":[p.page_id for p in pages]})
+        self._link_manifest(research_id,owner,book_id,pages)
         return {"unit":book.model_dump(),"pages":[p.model_dump() for p in pages[cursor:cursor+limit]],
                 "total":len(pages),"next_cursor":cursor+limit if cursor+limit<len(pages) else None,
                 "warnings":(["Počet obrazů nesouhlasí s katalogem."] if book.image_count is not None and book.image_count!=len(pages) else []),
@@ -541,8 +594,7 @@ class ResearchService:
         book,box_warnings=await self.ahmp.with_box(research_id,owner,book)
         shells=[self.ahmp.shell_page(book,n) for n in range(1,book.image_count+1)]
         self.store.link(research_id,owner,"opened_book",book_id,book.model_dump())
-        self.store.link(research_id,owner,"manifest",book_id,
-                        {"manifest_sha256":shells[0].manifest_sha256,"total":len(shells),"page_ids":[p.page_id for p in shells]})
+        self._link_manifest(research_id,owner,book_id,shells)
         window=shells[cursor:cursor+limit]
         for page in window:
             if self.store.entity("page",page.page_id) is None: self.store.put_entity("page",page.page_id,page.model_dump())
@@ -590,8 +642,7 @@ class ResearchService:
         page=self.prihlasky.shell_page(opened)
         self.store.put_entity("book",book_id,opened.model_dump())
         self.store.link(research_id,owner,"opened_book",book_id,{**opened.model_dump(),"source":"prihlasky"})
-        self.store.link(research_id,owner,"manifest",book_id,
-                        {"manifest_sha256":page.manifest_sha256,"total":1,"page_ids":[page.page_id]})
+        self._link_manifest(research_id,owner,book_id,[page])
         stored=self.store.entity("page",page.page_id)
         if stored is None or stored["manifest_sha256"]!=page.manifest_sha256: self.store.put_entity("page",page.page_id,page.model_dump())
         return {"unit":opened.model_dump(),"citation":opened.citation,"pages":[page.model_dump()][cursor:cursor+limit],"total":1,
@@ -634,8 +685,7 @@ class ResearchService:
             raise ResearchError("UNSUPPORTED_SOURCE","Katalog neuvádí počet snímků knihy.")
         shells=[self.na.shell_page(book,n) for n in range(1,book.image_count+1)]
         self.store.link(research_id,owner,"opened_book",book_id,book.model_dump())
-        self.store.link(research_id,owner,"manifest",book_id,
-                        {"manifest_sha256":shells[0].manifest_sha256,"total":len(shells),"page_ids":[p.page_id for p in shells]})
+        self._link_manifest(research_id,owner,book_id,shells)
         window=shells[cursor:cursor+limit]
         for page in window:
             if self.store.entity("page",page.page_id) is None: self.store.put_entity("page",page.page_id,page.model_dump())
@@ -750,8 +800,7 @@ class ResearchService:
         opened,pages,warnings=await self.pf.open_register(research_id,owner,book)
         self.store.put_entity("book",book_id,opened.model_dump())
         self.store.link(research_id,owner,"opened_book",book_id,{**opened.model_dump(),"source":"pf"})
-        self.store.link(research_id,owner,"manifest",book_id,
-                        {"manifest_sha256":pages[0].manifest_sha256,"total":len(pages),"page_ids":[p.page_id for p in pages]})
+        self._link_manifest(research_id,owner,book_id,pages)
         return {"unit":opened.model_dump(),"citation":opened.citation,"pages":[p.model_dump() for p in pages[cursor:cursor+limit]],
                 "total":len(pages),"next_cursor":cursor+limit if cursor+limit<len(pages) else None,"warnings":warnings,
                 "note":"scan_number je pořadí snímku v Porta fontium, nikoli folio ani strana. U dokladů uvádějte citaci a viewer_url; "
@@ -835,8 +884,7 @@ class ResearchService:
         source_id=opened.source_id      # a census unit carries the effective house (@N), so houses never share page IDs
         self.store.put_entity("book",source_id,opened.model_dump())
         self.store.link(research_id,owner,"opened_book",source_id,{**opened.model_dump(),"source":"pf"})
-        self.store.link(research_id,owner,"manifest",source_id,
-                        {"manifest_sha256":pages[0].manifest_sha256,"total":len(pages),"page_ids":[p.page_id for p in pages]})
+        self._link_manifest(research_id,owner,source_id,pages)
         note=("scan_number je pořadí snímku v Porta fontium, nikoli folio ani strana. U dokladů uvádějte citaci a viewer_url; "
               "podmínky použití: "+ARCHIVES["pf"].terms_url)
         if kind=="census":
@@ -894,8 +942,7 @@ class ResearchService:
         shells=[self.soapraha.shell_page(opened,n) for n in range(1,opened.image_count+1)]
         self.store.put_entity("book",book_id,opened.model_dump())
         self.store.link(research_id,owner,"opened_book",book_id,{**opened.model_dump(),"source":"soapraha"})
-        self.store.link(research_id,owner,"manifest",book_id,
-                        {"manifest_sha256":shells[0].manifest_sha256,"total":len(shells),"page_ids":[p.page_id for p in shells]})
+        self._link_manifest(research_id,owner,book_id,shells)
         window=shells[cursor:cursor+limit]
         for page in window:
             stored=self.store.entity("page",page.page_id)
@@ -1006,8 +1053,7 @@ class ResearchService:
         if self.store.has_link(research_id,owner,"book_option",unit_id):
             self.store.link(research_id,owner,"book_option",unit_id,{**opened.model_dump()})     # the listing now carries the fuller citation too
         self.store.link(research_id,owner,"opened_book",unit_id,{**opened.model_dump(),"source":"soapraha"})
-        self.store.link(research_id,owner,"manifest",unit_id,
-                        {"manifest_sha256":shells[0].manifest_sha256,"total":len(shells),"page_ids":[p.page_id for p in shells]})
+        self._link_manifest(research_id,owner,unit_id,shells)
         window=shells[cursor:cursor+limit]
         for page in window:
             stored=self.store.entity("page",page.page_id)
@@ -1128,8 +1174,7 @@ class ResearchService:
         shells=[self.trebon.shell_page(opened,n) for n in range(1,opened.image_count+1)]
         self.store.put_entity("book",book_id,opened.model_dump())
         self.store.link(research_id,owner,"opened_book",book_id,{**opened.model_dump(),"source":"trebon"})
-        self.store.link(research_id,owner,"manifest",book_id,
-                        {"manifest_sha256":shells[0].manifest_sha256,"total":len(shells),"page_ids":[p.page_id for p in shells]})
+        self._link_manifest(research_id,owner,book_id,shells)
         window=shells[cursor:cursor+limit]
         for page in window:
             stored=self.store.entity("page",page.page_id)
@@ -1201,8 +1246,7 @@ class ResearchService:
         self.store.put_entity("sketch",source_id,opened.model_dump())
         for page in pages: self.store.put_entity("page",page.page_id,page.model_dump())
         self.store.link(research_id,owner,"opened_book",source_id,{**opened.model_dump(),"source":"sketch"})
-        self.store.link(research_id,owner,"manifest",source_id,
-                        {"manifest_sha256":pages[0].manifest_sha256,"total":len(pages),"page_ids":[p.page_id for p in pages]})
+        self._link_manifest(research_id,owner,source_id,pages)
         return {"unit":opened.model_dump(),"citation":opened.citation,"pages":[p.model_dump() for p in pages[cursor:cursor+limit]],
                 "total":len(pages),"next_cursor":cursor+limit if cursor+limit<len(pages) else None,"warnings":warnings,
                 "note":SKETCH_NOTE,"terms_notice":SKETCH_TERMS_NOTICE}
@@ -1289,9 +1333,7 @@ class ResearchService:
         unit,ancestors,pages,warnings,citation=await catalog.open_unit(research_id,owner,unit_uuid,option)
         self.store.put_entity("unit",unit_id,unit.model_dump())
         self.store.link(research_id,owner,"opened_book",unit_id,{**unit.model_dump(),"source":catalog.site.page_source})
-        self.store.link(research_id,owner,"manifest",unit_id,
-                        {"manifest_sha256":pages[0].manifest_sha256,"total":len(pages),
-                         "page_ids":[p.page_id for p in pages]})
+        self._link_manifest(research_id,owner,unit_id,pages)
         return {"unit":unit.model_dump(),"citation":citation,"ancestors":ancestors,
                 "pages":[p.model_dump() for p in pages[cursor:cursor+limit]],"total":len(pages),
                 "next_cursor":cursor+limit if cursor+limit<len(pages) else None,"warnings":warnings,
@@ -1350,9 +1392,7 @@ class ResearchService:
             raise
         self.store.put_entity("census_set",set_id,unit.model_dump())
         self.store.link(research_id,owner,"opened_book",set_id,{**unit.model_dump(),"source":"census"})
-        self.store.link(research_id,owner,"manifest",set_id,
-                        {"manifest_sha256":pages[0].manifest_sha256,"total":len(pages),
-                         "page_ids":[p.page_id for p in pages]})
+        self._link_manifest(research_id,owner,set_id,pages)
         return {"unit":public_set(unit),"citation":citation,
                 "pages":[p.model_dump() for p in pages[cursor:cursor+limit]],"total":len(pages),
                 "next_cursor":cursor+limit if cursor+limit<len(pages) else None,"warnings":warnings,
@@ -1423,14 +1463,27 @@ class ResearchService:
                             "serveru archivu žádný snímek nestahuje; za další použití snímku odpovídáte podle podmínek archivu vy.",
                             viewer_url=page.viewer_url,citation=trebon_scan_citation(page.citation,page.scan_number))
 
-    async def tool_view_scan(self,owner,research_id,page_id:str):
+    async def tool_view_scan(self,owner,research_id,page_id:str|None=None,source_id:str|None=None,scan_number:int|None=None,
+                             preview:str="normal"):
+        if preview not in ("normal","small"): raise ValueError()
+        if source_id is not None and (not isinstance(source_id,str) or not 1<=len(source_id)<=100): raise ValueError()
+        if scan_number is not None and (not isinstance(scan_number,int) or isinstance(scan_number,bool) or not 0<=scan_number<=100000): raise ValueError()
+        by_scan=source_id is not None and scan_number is not None
+        if (page_id is None)!=by_scan or (page_id is not None and (source_id,scan_number)!=(None,None)):
+            raise ResearchError("INVALID_ARGUMENT","Zadejte buď page_id, nebo source_id se scan_number.")
+        if page_id is None:
+            # A book listed by list_sources but not opened yet is opened here, which saves the agent a round trip.
+            if not self.store.has_link(research_id,owner,"opened_book",source_id):
+                await self._open(owner=owner,research_id=research_id,source_id=source_id,cursor=0,limit=1)
+            page_id=self._page_at(research_id,owner,source_id,scan_number)
         self._manual_source(research_id,owner,page_id)
         self._checkpoint(research_id,owner,page_id)
         await self._resolve_page(research_id,owner,page_id)
         page=self._page(research_id,owner,page_id)
         self.store.link(research_id,owner,"page_attempt",page_id)
-        result=await self.images.get(research_id,owner,page)
+        result=await self.images.get(research_id,owner,page,side=self.cfg.navigation_side if preview=="small" else None)
         self.store.link(research_id,owner,"overview_page",page_id)
+        if preview=="small": result.data["note"]="Malý náhled k orientaci: rok a jména čtěte výřezem (zoom_scan)."
         return result
 
     async def tool_zoom_scan(self,owner,research_id,image_id:str,bbox_px:dict):
@@ -1548,7 +1601,8 @@ class ResearchService:
                "available_kinds":[k for k in a.kinds if self._available(a,k)],"link_only":a.link_only,
                "reason":a.link_reason,"robots_mode":a.robots_mode,"note":a.note,"terms_notice":a.terms_notice,
                **({"manual_import":MANUAL_HINT} if a.link_only and not a.kinds else {})} for a in ARCHIVES.values()]
-        out={"archives":rows,"import_folders":describe_labels(import_folders(self.cfg)),"manual_import":MANUAL_HINT}
+        out={"archives":rows,"import_folders":describe_labels(import_folders(self.cfg)),"manual_import":MANUAL_HINT,
+             "rubrika_version":__version__,"releases_url":RELEASES_URL}
         if district:
             routed=archives_for_district(district)
             out["district"]={"query":district,"matched":district_name(district),"archives":list(routed or []),
@@ -1557,7 +1611,7 @@ class ResearchService:
                 out["warnings"]=["Okres nebyl rozpoznán; zadejte dnešní okres (např. „Hradec Králové“, „Plzeň-jih“)."]
         return out
 
-    async def tool_export_family_tree(self,owner,tree:dict,variant:str="all"):
+    def _tree_inputs(self,owner,tree:dict,variant:str):
         if variant not in ("all","documented_only"): raise ValueError()
         family=FamilyTree.model_validate(tree)
         research_ids={s.research_id for p in family.persons for e in p.events for s in e.sources}
@@ -1568,8 +1622,25 @@ class ResearchService:
         for rid in sorted(research_ids):
             for o in self.store.observations(rid,owner): observations[(rid,o["observation_id"])]=o
             for b in self.store.links(rid,owner,"opened_book"): books.setdefault(b["id"],self._tree_source(b))
+        return family,observations,books
+
+    async def tool_export_family_tree(self,owner,tree:dict,variant:str="all"):
+        family,observations,books=self._tree_inputs(owner,tree,variant)
         return export_family_tree(family,observations,books,variant=variant,source_mode=self.source.mode,
                                   today=date.today())
+
+    async def tool_save_family_package(self,owner,tree:dict,variant:str="all"):
+        family,observations,books=self._tree_inputs(owner,tree,variant)
+        def load_crop(rid,image_id):
+            row=self.store.image(rid,owner,image_id)
+            raw=Path(row["file"]).read_bytes()
+            if hashlib.sha256(raw).hexdigest()!=row["ref"]["sha256"]:
+                raise ResearchError("INCOMPLETE_IMAGE","Uložený doklad neprošel kontrolním součtem.")
+            return raw
+        out=write_package(family,observations,books,load_crop,variant=variant,source_mode=self.source.mode,
+                          today=date.today(),root=self.cfg.data_dir/"export")
+        out["privacy"]=PACKAGE_NOTE
+        return out
 
     def _report(self,sid,owner):
         state=self.store.search(sid,owner)

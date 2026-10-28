@@ -18,6 +18,10 @@ hledání podle části obce není omezené na mateřskou obec, proto u něj vž
 
 ## Matriky (Acta Publica)
 
+- Katalog řadí knihy k **obcím**, ne k farnostem: hledej obec, kde se událost stala, ne sídlo
+  farnosti. Fara vedla pro přifařené vsi často samostatné knihy, které se pod sídlem farnosti
+  neukážou, a kniha sídla ostatní vsi obsahovat nemusí (`village_count` je počet obcí v knize).
+  Chybí-li hledaná osoba ve správném měsíci knihy, ověř nejdřív, že kniha obec vůbec pokrývá.
 - Katalog má pro každou knihu samostatná období narozených, oddaných a zemřelých a jejich
   rejstříků. Chybějící nebo nejisté období knihu nevylučuje (needs_review).
 - `book_url` z uživatelova odkazu obsahuje číselné ID knihy v **cestě detailu**; zobrazené číslo

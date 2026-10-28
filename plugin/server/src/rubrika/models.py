@@ -323,7 +323,9 @@ class Observation(Model):
     is_candidate: bool = False
     coverage_status: Literal["overview_only", "read", "unreadable", "partial"] | None = None
     historical_page: ShortText | None = None
-    skill_version: str = Field(default="0.13.2", max_length=30)
+    year: int | None = Field(default=None, ge=1000, le=2200)
+    section: ShortText | None = None
+    skill_version: str = Field(default="0.14.0", max_length=30)
     links: list[ObservationLink] = Field(default_factory=list, max_length=10)
 
     @model_validator(mode="after")

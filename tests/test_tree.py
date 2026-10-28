@@ -258,3 +258,43 @@ def test_long_occupation_stays_within_line_limit_and_long_names_are_rejected():
     raw=line_tree().model_dump()
     raw['persons'][0]['given_name']='x'*121
     with pytest.raises(ValidationError): FamilyTree.model_validate(raw)
+
+
+def test_open_ends_name_where_the_direct_line_stops():
+    ends=run()['summary']['open_ends']
+    assert [(e['person_id'],e['generation'],e['missing']) for e in ends]==[
+        ('vaclav',2,['birth','parents']),
+        ('josef',1,['birth','mother','parents_marriage']),
+        ('anna',1,['birth','parents']),
+        ('jan',0,['parents_marriage'])]
+    by={e['person_id']:e for e in ends}
+    assert by['jan']['anchor']=={'event':'baptism','year':1751,'place':'Znojmo','confidence':'documented'}
+    assert by['anna']['anchor']['confidence']=='hypothesis'
+    assert by['vaclav']['known_from_child']=='Josef Dvořák' and 'anchor' not in by['vaclav']
+
+
+def test_open_ends_skip_a_documented_generation_and_people_off_the_line():
+    tree=line_tree(families=[{'id':'f1','husband':'josef','wife':'anna','children':['jan'],
+        'marriage':{'type':'marriage','date':{'year':1749},'confidence':'documented','sources':src('o2')}}])
+    ends=run(tree)['summary']['open_ends']
+    assert 'jan' not in {e['person_id'] for e in ends}            # baptism and parents' marriage documented
+    assert 'vaclav' not in {e['person_id'] for e in ends}         # no longer linked to the root
+    assert next(e for e in ends if e['person_id']=='josef')['anchor']['event']=='marriage'
+
+
+def test_open_ends_are_capped_and_counted():
+    persons=[{'id':f'p{i}','given_name':f'P{i}','events':[]} for i in range(40)]
+    families=[{'id':f'f{i}','husband':f'p{i+1}','children':[f'p{i}']} for i in range(39)]
+    out=run(line_tree(root_person='p0',persons=persons,families=families))['summary']
+    assert len(out['open_ends'])==30 and out['open_ends_total']==40 and out['open_ends'][0]['person_id']=='p39'
+    assert 'open_ends_total' not in run()['summary']
+
+
+def test_crops_are_linked_only_when_given():
+    assert 'OBJE' not in run()['gedcom']
+    tree,observations=line_tree(),OBS
+    from rubrika.tree import to_gedcom
+    ged,_=to_gedcom(tree,observations,BOOKS,variant='all',source_mode='live',today=TODAY,media={('r1','o1'):'vyrezy/001.jpg'})
+    records(ged)
+    assert ('3 NOTE '+URL+'\n3 OBJE\n4 FILE vyrezy/001.jpg\n5 FORM jpg\n4 TITL Výřez zápisu, snímek 12, fol. 10\n') in ged
+    assert ged.count('OBJE')==1

@@ -1,4 +1,4 @@
-# MCP a datový kontrakt, verze 0.13.2
+# MCP a datový kontrakt, verze 0.14.0
 
 Oficiální MCP adaptér je v `server.py`, samostatně testované operace jsou
 v `service.py`. Server běží lokálně a s Claude komunikuje přes stdio. Každý nástroj vrací
@@ -12,11 +12,11 @@ structuredContent.
 | start_research | query: SearchQuery | research_id, revision, checkpoint_images |
 | revise_research | research_id, query, expected_revision | nová revize; doklady zachovány |
 | continue_research | research_id | pokračování po kontrolním bodu (CHECKPOINT) se souhlasem uživatele: images_total, next_checkpoint_after |
-| list_archives | district? | archivy, které Rubrika zná: kód, název, aplikace, druhy (`kinds`), zapnuté druhy (`available_kinds`), `link_only`, důvod, podmínky užití; s okresem i archiv, kam okres patří. Bez sítě |
-| find_place | research_id, term, kind (parish_registers/land_records/census/cadastral_maps), district?, archives? (1–3 kódy) | places (každé s `archive`; u sčítání MZA `place_kind` obec/cobec), ambiguous, `searched`, `not_searched` (archiv, důvod, odkaz), warnings |
+| list_archives | district? | archivy, které Rubrika zná: kód, název, aplikace, druhy (`kinds`), zapnuté druhy (`available_kinds`), `link_only`, důvod, podmínky užití; s okresem i archiv, kam okres patří; `rubrika_version` a `releases_url`. Bez sítě |
+| find_place | research_id, term, kind (parish_registers/land_records/census/cadastral_maps), district?, archives? (1–3 kódy) | places (každé s `archive`; u sčítání MZA `place_kind` obec/cobec), ambiguous, `searched`, `not_searched` (archiv, důvod, odkaz), warnings (mj. upozornění, že hledaná obec má části nebo farnosti s vlastními knihami) |
 | list_sources | research_id, place_ids (1–5, z jednoho archivu), kind, year_from?, year_to?, digitized_only=true, fund_marks?, district_archive?, cursor, limit (max20) | sources (řádek nese `archive`, `kind`) + relevance, total, next_cursor, listing_complete, warnings |
-| open_source | research_id, source_id, cursor, limit (max20) | `archive`, `kind`, `unit` (metadata knihy, archiválie nebo sady), citation, stránkované snímky, total, next_cursor, warnings, note |
-| view_scan | research_id, page_id | image ref a obrazový přehled |
+| open_source | research_id, source_id, cursor, limit (max20) | `archive`, `kind`, `unit` (metadata knihy, archiválie nebo sady), citation, stránkované snímky, total, next_cursor, warnings, note; `known_points` (nejvýš 40 posledních), jen když hledání v knize už něco uložilo: po snímcích `scan_number`, `year`, `section`, `kind`, `observation_id`, `text` (zkrácený) z posledních pozorování (bez next_step); klesá-li `year` s rostoucím snímkem, varování o knize z více částí |
+| view_scan | research_id, page_id, nebo source_id + scan_number; preview `normal` (výchozí) / `small` | image ref a obrazový přehled; `source_id` z list_sources nebo `unit.source_id` z open_source; neotevřený pramen se nejdřív otevře (jako open_source), u otevřeného se snímek dohledá v uloženém manifestu bez požadavku na archiv; `small` = delší strana nejvýš `RUBRIKA_NAVIGATION_SIDE` (500 px), u dlaždicových archivů asi čtvrtina dlaždic, a `note`. Každý obraz z view_scan a zoom_scan nese `archive_requests` (požadavky na archiv za toto volání; dlaždice z mezipaměti se nepočítají). `INCOMPLETE_IMAGE` nese v `details` příčinu (`cause`, `cause_message`, případně `status`, `reason`, `error_type`) |
 | zoom_scan | research_id, image_id, bbox_px | nový obrazový detail s převodem do původního zdroje |
 | import_scan | research_id, file_name?, archive?, citation?, source_url?, scan_label?, folder? | ruční režim, viz níže. Bez `file_name`: výpis nedávných obrázků (`files`, `import_folders`); s ním: import jako `view_scan` (image ref, obrazový přehled) a `page_id`, `provenance=user_supplied`, `viewer_link_verified=false` |
 | show_saved_evidence | research_id, image_id | již uložený důkaz; bez stahování ze zdroje, nic nečerpá |
@@ -24,7 +24,8 @@ structuredContent.
 | get_research_status | research_id | revize, shrnutí kandidátů, rozsah, `usage` (požadavky a snímky z archivů, snímky do kontrolního bodu, dnešní stropy archivů a otevřených knih) |
 | list_findings | research_id, cursor=0, limit=5 (max20) | úplná stránkovaná pozorování |
 | finish_research | research_id, stop_reason | kandidáti, stav běhu, důvod zastavení, rozsah |
-| export_family_tree | tree: FamilyTree, variant=all/documented_only | gedcom (5.5.1), mermaid, summary, suggested_filename; nic neukládá ani nestahuje |
+| export_family_tree | tree: FamilyTree, variant=all/documented_only | gedcom (5.5.1), mermaid, summary (s `open_ends`), suggested_filename; nic neukládá ani nestahuje |
+| save_family_package | tree: FamilyTree, variant=all/documented_only | na žádost uživatele uloží do `<data>/export/<název>-<datum>[-n]/` GEDCOM s odkazy `OBJE` na výřezy ve `vyrezy/`, samostatné HTML (výřezy jako data URI, CSP bez skriptů) a ZIP; vrací cesty, `crops`, `summary`, `privacy`. Nic nestahuje ani neodesílá, existující balíček nepřepíše, výřez s jiným kontrolním součtem odmítne (INCOMPLETE_IMAGE) |
 
 ### Ruční režim: import_scan
 
@@ -228,6 +229,10 @@ GEDCOM: jeden SOUR na knihu, citace PAGE „snímek N[, folio]“, QUAY 3/2/1 po
 = pracovní přepis, NOTE = viewer_url; nedoložené údaje nesou poznámku. `documented_only` vynechá
 nedoložené údaje a osoby, osoby mezi doloženými generacemi ponechá jen se jménem (warnings).
 Mermaid: flowchart TB, uzly osob a rodin (⚭), popisky escapované; plná čára = doloženo.
+`summary.open_ends` (nejvýš 30, při více `open_ends_total`): kořen a jeho předkové, u nichž chybí doložené narození
+či křest (`birth`), rodiče (`parents`, `father`, `mother`) nebo doložený sňatek rodičů (`parents_marriage`);
+`generation` od kořene, nejvzdálenější první, `anchor` = nejstarší datovaná událost osoby (i sňatek), jinak
+`known_from_child`. Počítá se z celého stromu před variantou `documented_only`.
 
 SearchQuery: raw_query (povinné), place_hint, event_type birth/marriage/death,
 year_from, year_to, person, book_url (vše ostatní může být null).
@@ -251,7 +256,7 @@ komprese, nikoli generativní „oprava“ písma.
 
 Observation: kind layout/index_entry/record/reviewed_region/next_step, image_id,
 text, fields, normalized_fields, uncertainties, matches, contradictions,
-is_candidate, coverage_status, historical_page. Server připojí evidence a
+is_candidate, coverage_status, historical_page, year (1000–2200) a section (pro orientaci v knize, viz known_points). Server připojí evidence a
 authorship=model_interpretation_not_human_verified. Ani vymyšlený text se
 schématem nestává pravdivý; vazba na zdroj je nutná, nikoli dostatečná.
 

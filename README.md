@@ -5,7 +5,7 @@
 [![Licence MIT](https://img.shields.io/badge/licence-MIT-blue)](LICENSE)
 ![Plugin pro Claude](https://img.shields.io/badge/Claude-plugin-d97757)
 ![Plugin pro ChatGPT a Codex](https://img.shields.io/badge/ChatGPT%20%26%20Codex-plugin-10a37f)
-![Verze 0.13.2](https://img.shields.io/badge/verze-0.13.2-lightgrey)
+![Verze 0.14.0](https://img.shields.io/badge/verze-0.14.0-lightgrey)
 
 Rubrika je bezplatný plugin pro Claude a ChatGPT/Codex s **připravenými přístupy k českým
 archivům**. Pomůže vybrat správnou knihu, otevřít původní sken a uložit nález tak, abyste
@@ -32,7 +32,9 @@ Napíšete Claudovi nebo ChatGPT, koho hledáte, třeba:
   prameny pomáhají sledovat rodinu i mezi jednotlivými matričními zápisy.
 - **Pokračování s uloženými doklady.** Hledání, nálezy a výřezy zůstávají na vašem
   počítači. V další konverzaci navážete na uložený stav a výsledky můžete exportovat
-  jako GEDCOM pro genealogické programy.
+  jako GEDCOM pro genealogické programy. Na požádání je asistent uloží jako balíček
+  pro rodinu: GEDCOM s výřezy zápisů, stránku, která se otevře v prohlížeči, a ZIP.
+  Řekne vám také, kde linie končí a co v ní ještě chybí.
 
 Začít můžete jménem, obcí a přibližným obdobím, bez znalosti čísel matrik a fondů.
 Asistent vám pomůže i se čtením kurentu; správnost přepisu je potřeba ověřit proti skenu.
@@ -66,6 +68,13 @@ Codexu nebo desktopové aplikace ChatGPT.
 Nejjednodušší je **Claude Desktop**, který si vše potřebné stáhne sám. Ostatní aplikace
 potřebují navíc pomocné programy `uv` a `git`. Po instalaci v kterékoli aplikaci začněte
 **novou konverzaci**; do rozpracované se Rubrika nenačte.
+
+**V Claude Code nebo Codexu to za vás udělá asistent.** Napište mu:
+
+> Nainstaluj mi prosím Rubriku podle https://github.com/j-necas/rubrika/blob/main/docs/INSTALACE-AGENT.md
+
+Než cokoli nainstaluje, zeptá se vás na souhlas. Postup, kterým se řídí, je
+v [návodu pro asistenta](docs/INSTALACE-AGENT.md); ručně postupujte podle oddílů níže.
 
 ### Claude Desktop
 
@@ -273,7 +282,7 @@ Celé znění: **[Ohleduplnost k archivům a odpovědnost](docs/PRAVIDLA.md)**.
 
 ## Stav projektu
 
-Rubrika je verze pro vyzkoušení (0.13.2). Hledání v MZA (matriky, pozemkové knihy, sčítací operáty,
+Rubrika je verze pro vyzkoušení (0.14.0). Hledání v MZA (matriky, pozemkové knihy, sčítací operáty,
 stabilní katastr) je vyzkoušené na skutečných datech. Hledání ve všech ostatních archivech
 je ověřené na živých archivech od hledání po otevření snímku (u Třeboně jen katalog a odkazy).
 Automatické testy běží na Linuxu, macOS i Windows.
@@ -292,7 +301,8 @@ nezávislý projekt, není službou ani produktem Moravského zemského archivu.
 
 Rubrika is a free plugin for Claude and ChatGPT/Codex with built-in access to digitised Czech archives
 (parish registers, land records, cadastral maps, censuses). It helps locate original scans and saves findings with
-image crops, transcriptions and source citations, so research can continue across conversations and be exported as GEDCOM.
+image crops, transcriptions and source citations, so research can continue across conversations and be exported as GEDCOM
+(on request also as a family package: GEDCOM with the crops, a standalone HTML page and a ZIP, saved on your own disk).
 It searches seven archives: the Moravian Land Archive (MZA),
 the State Regional Archives in Hradec Králové, Plzeň (Porta fontium), Prague (eBadatelna) and Třeboň (DigiArchiv,
 catalogue and links only), the Prague City Archives and the National Archives (Jewish registers, Prague police

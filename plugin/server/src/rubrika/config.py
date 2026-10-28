@@ -73,6 +73,7 @@ class Settings(BaseSettings):
     # Real MZA handwriting scans compress poorly; a 1600px JPEG detail needs ~1 MB of base64.
     payload_max_chars: int = Field(default=1500000, ge=8000, le=2000000)
     preview_side: int = Field(default=1000, ge=256, le=1600)
+    navigation_side: int = Field(default=500, ge=256, le=1000)   # view_scan preview="small": a jump, not a reading
     crop_side: int = Field(default=1600, ge=256, le=2400)
     max_source_pixels: int = Field(default=80000000, ge=1000000)
     # At crop_side=1600 a level spans at most 3200px per axis, i.e. up to 14x14 tiles of 256px.

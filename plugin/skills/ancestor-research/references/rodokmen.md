@@ -29,3 +29,15 @@ Nabídni obě varianty: `all` (s nedoloženými údaji) a `documented_only`.
   programy načtou GEDCOM 5.5.1. Formát UZED (Family Tree Builder 7) se nevytváří.
 - Vždy uveď, že přepisy a totožnost osob nejsou lidsky ověřené, a vyjmenuj
   nedoložené údaje a varování ze `summary`.
+- `summary.open_ends`: osoby přímé linie, kde strom končí, generace od kořene,
+  co chybí (`birth`, `parents`, `father`, `mother`, `parents_marriage`) a výchozí
+  bod `anchor` (událost, rok, místo), u osoby bez data `known_from_child`.
+  Shrň to uživateli a navrhni další hledání; knihy dohledej až list_sources.
+
+## Balíček na disk
+Na žádost („ulož to“, „pošlu to rodině“) zavolej `save_family_package` se stejným
+stromem. Uloží do složky Rubriky novou složku: `.ged` s odkazy na výřezy ve
+`vyrezy/`, samostatnou stránku `.html` (výřezy uvnitř, otevře se v prohlížeči)
+a `.zip` s obojím. Předchozí balíček nepřepisuje. Uživateli dej cesty
+z výsledku a větu z `privacy`; balíček sám nikam neposílej. GEDCOM v balíčku
+platí jen se složkou `vyrezy/` vedle sebe.

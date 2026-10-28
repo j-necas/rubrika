@@ -1,4 +1,4 @@
-# Rubrika – hledání předků v archivech (0.13.2)
+# Rubrika – hledání předků v archivech (0.14.0)
 
 Plugin pro Claude Code a Codex, se skillem `ancestor-research` a lokálním
 MCP serverem v `server/`. Claude Desktop používá stejný server v balíčku

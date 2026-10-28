@@ -77,6 +77,8 @@ async def test_missing_tile_does_not_create_complete_evidence(cfg,store):
         sid,data=await open_demo(service)
         out=await service.call('view_scan','alice',{'research_id':sid,'page_id':data['pages'][0]['page_id']})
         assert out.is_error and out.data['error']['code']=='INCOMPLETE_IMAGE'
+        details=out.data['error']['details']
+        assert details['cause']=='SOURCE_UNAVAILABLE' and details['status']==404     # retry or not is the caller's call
         assert not store.links(sid,'alice','downloaded_page')
         assert store.usage(sid,'alice')['archive_images']==0
     finally:await service.close()
