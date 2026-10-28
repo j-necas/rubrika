@@ -276,7 +276,9 @@ podle data pak vede do jiné části.
 Rejstřík často řadí jen podle počátečního
 písmene a podobně znějící písmena slučuje do jednoho oddílu (B/P, G/J, D/T,
 F/V, U/V, V/W); projdi celý oddíl i oddíly variant (Nowak/Novák).
-Rejstřík bývá vzadu, ale i zvlášť nebo rozdělený podle události či obce.
+Rejstřík bývá vzadu, ale i zvlášť nebo rozdělený podle události či obce. Rejstřík
+farnosti s více obcemi mívá pro každou obec vlastní oddíl s celou abecedou: najdi
+oddíl hledané obce, a nevíš-li ji, projdi hledané písmeno ve všech oddílech.
 Rejstřík sňatků často uvádí jen ženicha, rejstřík narození někdy řadí podle
 otce. Novější rejstříky uvádějí rok a číslo domu; využij je k zúžení.
 Kniha mívá dvojí stránkování (původní a nové); ověř, na které rejstřík odkazuje.
