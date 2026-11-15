@@ -414,6 +414,8 @@ class ResearchService:
     async def tool_open_source(self,owner,research_id,source_id:str,cursor:int=0,limit:int=20):
         if not isinstance(source_id,str) or not 1<=len(source_id)<=100: raise ValueError()
         out=await self._open(owner=owner,research_id=research_id,source_id=source_id,cursor=cursor,limit=limit)
+        reason=self._manual_scans(ARCHIVES.get(out.get("archive") or ""))
+        if reason: out["manual_scans"]=reason
         unit_id=(out.get("unit") or {}).get("source_id") or source_id
         points=self._known_points(research_id,owner,{source_id,unit_id})
         if points:
@@ -500,13 +502,29 @@ class ResearchService:
             self.store.put_entity("book",book_id,book.model_dump())
         else:
             raise ResearchError("NOT_FOUND","Kniha musí pocházet z katalogového výběru nebo z odkazu v zadání.")
+        manual=self._manual_scans(ARCHIVES["mza"])
+        if not manual:
+            self.store.link(research_id,owner,"opened_book",book_id,book.model_dump())
+            pages=await self.catalog.pages(research_id,owner,book)
+            self._link_manifest(research_id,owner,book_id,pages)
+            return {"unit":book.model_dump(),"pages":[p.model_dump() for p in pages[cursor:cursor+limit]],
+                    "total":len(pages),"next_cursor":cursor+limit if cursor+limit<len(pages) else None,
+                    "warnings":(["Počet obrazů nesouhlasí s katalogem."] if book.image_count is not None and book.image_count!=len(pages) else []),
+                    "note":"scan_number je pozice snímku, nikoli historické folio. Zdrojové odkazy ještě nebyly ověřeny v prohlížeči."}
+        if not book.image_count:
+            # Without the catalogue's image count there is nothing to number; the detail page itself is not fetched.
+            raise ResearchError("MANUAL_SOURCE",manual+" Počet snímků této knihy katalog neuvádí; najděte ji "
+                                "přes find_place a list_sources, nebo pracujte přímo v prohlížeči.",viewer_url=book.detail_url)
         self.store.link(research_id,owner,"opened_book",book_id,book.model_dump())
-        pages=await self.catalog.pages(research_id,owner,book)
+        pages=self.catalog.shell_pages(book)
+        for page in pages: self.store.put_entity("page",page.page_id,page.model_dump())
         self._link_manifest(research_id,owner,book_id,pages)
         return {"unit":book.model_dump(),"pages":[p.model_dump() for p in pages[cursor:cursor+limit]],
-                "total":len(pages),"next_cursor":cursor+limit if cursor+limit<len(pages) else None,
-                "warnings":(["Počet obrazů nesouhlasí s katalogem."] if book.image_count is not None and book.image_count!=len(pages) else []),
-                "note":"scan_number je pozice snímku, nikoli historické folio. Zdrojové odkazy ještě nebyly ověřeny v prohlížeči."}
+                "total":len(pages),"next_cursor":cursor+limit if cursor+limit<len(pages) else None,"warnings":[],
+                "note":"Omezený režim: Rubrika matriky MZA nestahuje (snímky chrání ověření proti robotům). scan_number je pořadí snímku "
+                       "v knize podle katalogu, nikoli folio; viewer_url otevře knihu v prohlížeči archivu, kde uživatel přejde na snímek "
+                       "scan_number („Části matriky“ na stránce knihy ukazují rozsahy snímků po obcích a druzích zápisů). Snímek uložte "
+                       "a načtěte nástrojem import_scan s citací; view_scan a zoom_scan pro tento archiv nefungují."}
 
     async def _ahmp_list(self,owner,research_id,place_id:str,cursor:int=0,limit:int=10):
         self._pagination(cursor,limit)
@@ -1449,11 +1467,27 @@ class ResearchService:
         """A scan the user imported costs the archives nothing and never pauses the research."""
         if not str(page_id).startswith("user:"): self.store.check_checkpoint(sid,owner)
 
+    def _manual_scans(self,archive)->str|None:
+        """Why Rubrika does not fetch this archive's scans (None: it does)."""
+        if archive is None or not archive.manual_scans: return None
+        return None if archive.scans_setting and getattr(self.cfg,archive.scans_setting) else archive.manual_scans
+
     def _manual_source(self,sid,owner,page_id):
-        """A SOA Třeboň scan is never fetched: the answer points to the archive's viewer and to import_scan. Checked first, before any budget."""
-        if not (isinstance(page_id,str) and TREBON_PAGE_ID.fullmatch(page_id)): return
-        self.store.search(sid,owner)
+        """A scan of SOA Třeboň, or of an archive that forbids tools to fetch scans (Archive.manual_scans), is never fetched: the
+        answer points to the archive's viewer and to import_scan. Checked first, before any budget or request."""
+        if not isinstance(page_id,str) or page_id.startswith("user:"): return
+        trebon=bool(TREBON_PAGE_ID.fullmatch(page_id))
         value=self.store.entity("page",page_id)
+        if not trebon:
+            page=Page.model_validate(value) if value else None
+            reason=self._manual_scans(ARCHIVES.get(page.archive)) if page else None
+            if page is None or page.source_type=="user_supplied" or not reason: return
+            self.store.search(sid,owner)
+            if not self.store.has_link(sid,owner,"opened_book",page.book_id):
+                raise ResearchError("NOT_FOUND","Kniha není otevřena v tomto hledání.")
+            raise ResearchError("MANUAL_SOURCE",reason,viewer_url=page.viewer_url,
+                                citation=page.citation,scan_number=page.scan_number)
+        self.store.search(sid,owner)
         if not value: raise ResearchError("NOT_FOUND","Neznámý snímek; nejprve otevřete knihu.")
         page=Page.model_validate(value)
         if not self.store.has_link(sid,owner,"opened_book",page.book_id):
@@ -1490,6 +1524,7 @@ class ResearchService:
         original=self.store.image(research_id,owner,image_id)
         ref=ImageRef.model_validate(original["ref"])
         bbox=BBox.model_validate(bbox_px)
+        self._manual_source(research_id,owner,ref.page_id)
         page=self._page(research_id,owner,ref.page_id)
         if page.manifest_sha256!=ref.manifest_sha256:
             raise ResearchError("SOURCE_CHANGED","Starý výřez pochází z jiné verze manifestu.")
@@ -1600,6 +1635,7 @@ class ResearchService:
         rows=[{"code":a.code,"name":a.name,"app":a.app,"homepage":a.homepage,"terms_url":a.terms_url,"kinds":list(a.kinds),
                "available_kinds":[k for k in a.kinds if self._available(a,k)],"link_only":a.link_only,
                "reason":a.link_reason,"robots_mode":a.robots_mode,"note":a.note,"terms_notice":a.terms_notice,
+               **({"manual_scans":self._manual_scans(a)} if self._manual_scans(a) else {}),
                **({"manual_import":MANUAL_HINT} if a.link_only and not a.kinds else {})} for a in ARCHIVES.values()]
         out={"archives":rows,"import_folders":describe_labels(import_folders(self.cfg)),"manual_import":MANUAL_HINT,
              "rubrika_version":__version__,"releases_url":RELEASES_URL}

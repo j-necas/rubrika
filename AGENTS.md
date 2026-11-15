@@ -4,7 +4,7 @@ Guidance for contributors and coding agents working in this repository.
 
 ## What this is
 
-Rubrika is a genealogy-research plugin for Claude and ChatGPT/Codex over digitised Czech archives (MZA, SOA Hradec Králové/VČA, SOA Plzeň/Porta fontium, SOA Praha, AHMP, Národní archiv; SOA Třeboň catalogue only): parish registers, land records, censuses. It has two halves: the **skill** `plugin/skills/ancestor-research/` (research procedure, palaeography and result-format references) and a **local stdio MCP server** in `plugin/server/` (Python). The model reads the handwriting and decides; the server provides source access, rate limits and persisted state. There is no own model, OCR or API key. Project docs and user-facing text are in Czech; code and identifiers are in English.
+Rubrika is a genealogy-research plugin for Claude and ChatGPT/Codex over digitised Czech archives (MZA, SOA Hradec Králové/VČA, SOA Plzeň/Porta fontium, SOA Praha, AHMP, Národní archiv; MZA, SOA Praha and SOA Třeboň: catalogue and links only, scans come via `import_scan`): parish registers, land records, censuses. It has two halves: the **skill** `plugin/skills/ancestor-research/` (research procedure, palaeography and result-format references) and a **local stdio MCP server** in `plugin/server/` (Python). The model reads the handwriting and decides; the server provides source access, rate limits and persisted state. There is no own model, OCR or API key. Project docs and user-facing text are in Czech; code and identifiers are in English.
 
 ## Commands
 

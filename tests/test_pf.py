@@ -161,13 +161,16 @@ def test_parse_viewer_keys_and_urls():
 
 
 @pytest.mark.parametrize('mutate', [
-    lambda h: h.replace('imagesSet :', 'imagesList :'),
-    lambda h: h.replace('DeepZoom=register/', 'DeepZoom=other/', 1),
-    lambda h: h.replace('.jp2.dzi"', '.png"', 1),
-    lambda h: h.replace('/fcgi-bin/iipsrv.fcgi?DeepZoom=', 'https://evil.example/fcgi-bin/iipsrv.fcgi?DeepZoom=', 1),
-    lambda h: h.replace('imagesSet : [', 'imagesSet : [1, ', 1),
+    lambda h: h.replace('pathsSet :', 'imagesList :'),                       # the image list is renamed again
+    lambda h: h.replace('imageServer :', 'server :'),                        # no image server
+    lambda h: h.replace('"\\/fcgi-bin\\/iipsrv.fcgi"', '"https:\\/\\/evil.example\\/iipsrv.fcgi"', 1),   # another host
+    lambda h: h.replace('pathsSet : ["register', 'pathsSet : ["other', 1),     # another section
+    lambda h: h.replace('_0010-x.jp2"', '_0010-x.png"', 1),
+    lambda h: h.replace('pathsSet : ["register\\/soap-pn', 'pathsSet : ["register\\/..\\/soap-pn', 1),
+    lambda h: h.replace('pathsSet : [', 'pathsSet : [1, ', 1),
     lambda h: h.replace('urlsSet : [', 'urlsSet : ["iipimage/1/x", ', 1),
-    lambda h: h.replace('imagesSet : [', 'imagesSet : [], x: [', 1),
+    lambda h: h.replace('pathsSet : [', 'pathsSet : [], x: [', 1),
+    lambda h: h.replace(' pathsSet : [', ' pathsSet : [], pathsSet : [', 1),  # two lists: ambiguous
     lambda h: h.replace('demolov-01_0030-n', 'demolov-01_0010-x'),      # duplicate image
     lambda h: h.replace('demolov-01_0030-n', 'a b'),
 ])
@@ -176,6 +179,22 @@ def test_parse_viewer_structure_changes(mutate):
     with pytest.raises(ResearchError) as e:
         P.parse_viewer(html, str(D.nid('soap-pn/demolov-01')))
     assert e.value.code in ('PARSE_ERROR', 'UNSUPPORTED_SOURCE')
+
+
+def test_parse_viewer_portal_shape():
+    """The viewer as the portal writes it since November 2026: no imagesSet, image paths relative to imageServer."""
+    html = ('<img onclick="hdv.osdViewer.goToPage(hdv.options.imagesSet.length - 1);"/><script>hdv = new HDV({\n'
+            ' imageServer : "\\/fcgi-bin\\/iipsrv.fcgi",\n'
+            ' urlsSet : ["iipimage\\/30061298\\/domazlice-04_0010-x","iipimage\\/30061298\\/domazlice-04_0100-xo"],\n'
+            ' pathsSet : ["register\\/soap-pn\\/domazlice\\/domazlice-04\\/domazlice-04_0010-x.jp2",'
+            '"register\\/soap-pn\\/domazlice\\/domazlice-04\\/domazlice-04_0100-xo.jp2"],\n'
+            ' pagesSet : [1,2],\n jp2IdSet : [10,100],\n'
+            ' initialImagePath : "register\\/soap-pn\\/domazlice\\/domazlice-04\\/domazlice-04_0010-x.jp2"\n});</script>')
+    assert P.parse_viewer(html, '30061298') == [
+        ('domazlice-04_0010-x', 'https://www.portafontium.eu/fcgi-bin/iipsrv.fcgi?IIIF=register/soap-pn/domazlice/domazlice-04/'
+                                'domazlice-04_0010-x.jp2/info.json'),
+        ('domazlice-04_0100-xo', 'https://www.portafontium.eu/fcgi-bin/iipsrv.fcgi?IIIF=register/soap-pn/domazlice/domazlice-04/'
+                                 'domazlice-04_0100-xo.jp2/info.json')]
 
 
 def test_viewer_nid_mismatch_is_parse_error():

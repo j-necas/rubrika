@@ -10,6 +10,9 @@ _POW_INPUT = re.compile(rb"<input[^>]*name=[\"'](?:nonce|pow|difficulty|challeng
 _CAPTCHA_CLASS = re.compile(rb"class=[\"'][^\"']*\b(?:g-recaptcha|h-captcha|cf-turnstile)\b", re.I)
 _CAPTCHA_TAG = re.compile(rb"<[a-z][^>]*>", re.I)
 _CF_CHL = re.compile(rb"cf[-_]chl[-_]", re.I)
+# ALTCHA proof-of-work that runs by itself on load and holds back the content (MZA Acta Publica since November 2026).
+# A widget that only guards a form (no auto start) is a captcha-protected action, not a gate.
+_ALTCHA_AUTO = re.compile(rb"<altcha-widget\b[^>]*\bauto=[\"']?on(?:load|focus|submit)\b", re.I)
 SMALL_PAGE = 20000
 
 
@@ -23,6 +26,8 @@ def is_bot_gate(body: bytes, location: str | None = None, content_type: str = ""
     if _CF_CHL.search(head) and b"just a moment" in low:
         return True
     if _FORM.search(head) and _POW_INPUT.search(head):
+        return True
+    if _ALTCHA_AUTO.search(head):
         return True
     # A captcha widget is a wall only on a small page; a big page merely offering a captcha-protected action is not.
     return len(body) < SMALL_PAGE and any(b"data-sitekey" in t and _CAPTCHA_CLASS.search(t)

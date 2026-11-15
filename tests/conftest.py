@@ -9,6 +9,14 @@ from rubrika.service import ResearchService
 from rubrika.demo import DemoArchive
 
 
+@pytest.fixture(autouse=True)
+def synthetic_scans(monkeypatch):
+    """The synthetic MZA and SOA Praha fixtures exercise the whole image path; the real archives let tools fetch no scans
+    (manual mode, tested with these switches off in test_manual_scans.py)."""
+    monkeypatch.setenv("RUBRIKA_MZA_SCANS_ENABLED", "true")
+    monkeypatch.setenv("RUBRIKA_SOAPRAHA_SCANS_ENABLED", "true")
+
+
 @pytest.fixture
 def cfg(tmp_path):
     return Settings(_env_file=None, data_dir=tmp_path, live_enabled=True, aron_enabled=True, census_enabled=True, vca_enabled=True, request_interval=0)

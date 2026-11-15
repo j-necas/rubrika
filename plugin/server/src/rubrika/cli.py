@@ -31,7 +31,8 @@ async def diagnostic(args):
     if args.command=="demo":
         from .demo import DemoArchive,run_demo
         from .reporting import export_report
-        cfg=Settings(_env_file=None,data_dir=Path(args.data_dir),live_enabled=True,request_interval=0)
+        # Synthetic archive only: the demo walks the whole image path, which the real MZA no longer lets tools use.
+        cfg=Settings(_env_file=None,data_dir=Path(args.data_dir),live_enabled=True,request_interval=0,mza_scans_enabled=True)
         archive=DemoArchive()
         service=make_service(cfg,transport=archive.transport,respect_robots=True,source_mode="synthetic_demo")
         try:

@@ -1,4 +1,4 @@
-"""Entirely synthetic responses shaped like Porta fontium (Drupal 7 search, book detail, viewer with imagesSet,
+"""Entirely synthetic responses shaped like Porta fontium (Drupal 7 search, book detail, viewer with pathsSet,
 iipsrv IIIF). Places, books and images are invented; NEVER real archive data."""
 import html
 import io
@@ -10,7 +10,7 @@ import httpx
 from PIL import Image
 
 from .catalog import normalize
-from .demo_pf_more import handle_more
+from .demo_pf_more import handle_more, hdv_script
 
 ROWS_PER_PAGE = 4          # the live portal shows 40; tests patch this to force pagination
 CRAWL_DELAY = 10           # robots.txt of the portal asks for 10 s between requests
@@ -172,12 +172,12 @@ def detail_page(slug: str, sidebar: bool = False) -> str:
 
 def viewer_page(slug: str) -> str:
     n = nid(slug)
-    images = [f"/fcgi-bin/iipsrv.fcgi?DeepZoom={image_dir(slug)}/{k}.jp2.dzi" for k in keys(slug)]
+    paths = [f"{image_dir(slug)}/{k}.jp2" for k in keys(slug)]
     urls = [f"iipimage/{n}/{k}" for k in keys(slug)]
     return ('<!doctype html><html lang="cs"><head><title>' + html.escape(SLUGS[slug][1]) + ' | Porta fontium</title></head><body>'
             '<img id="last-page-btn" onclick="if (hdv.isLastPage == false) {hdv.osdViewer.goToPage(hdv.options.imagesSet.length - 1);} return false;"/>'
-            '<script>console.log("start hdv");\n hdv = new HDV({\n // pole URL obrázků\n imagesSet : ' + json.dumps(images) +
-            ',\n urlsSet : ' + json.dumps(urls) + '\n });</script></body></html>')
+            + hdv_script(paths, urls) + '</body></html>')
+
 
 
 def info_json(width: int, height: int, ident: str) -> dict:

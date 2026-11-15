@@ -11,7 +11,7 @@ from urllib.parse import parse_qs, quote, urljoin, urlsplit
 
 from bs4 import BeautifulSoup, NavigableString
 
-from .catalog import _read_array, iiif_from_deepzoom, normalize
+from .catalog import _read_array, normalize
 from .errors import ResearchError
 from .census import house_covered
 from .models import EventCoverage, HouseNumbers, Page, Periods, PfBook, PfRecord, Place, SearchQuery, YearSpan
@@ -28,7 +28,8 @@ _MARKS = {"*": "birth", "oo": "marriage", "+": "death"}
 _PART = re.compile(r"(?:(\d{4})(?:\s*-\s*(\d{4}))?\s+)?(\*|oo|\+)( ?i)?")
 _SLUG_PATH = re.compile(rf"/register/({PF_SLUG})/({PF_SLUG})/?")
 _KEY = re.compile(r"[A-Za-z0-9][A-Za-z0-9_.-]{0,120}")
-_DEEPZOOM = re.compile(r"/fcgi-bin/iipsrv\.fcgi\?DeepZoom=((?:register|amtsbuch|census)/[A-Za-z0-9_./-]{1,400})\.jp2\.dzi")
+IMAGE_SERVER = "/fcgi-bin/iipsrv.fcgi"
+_IMAGE_PATH = re.compile(r"((?:register|amtsbuch|census)/[A-Za-z0-9_./-]{1,400})\.jp2")
 _ID = re.compile(rf"pf:book:({PF_SLUG})/({PF_SLUG})")
 _AMTSBUCH_ID = re.compile(rf"pf:amtsbuch:({PF_SLUG})/({PF_SLUG})/({PF_SLUG})")
 _CENSUS_ID = re.compile(rf"pf:census:({PF_SLUG})/(\d{{4}})/({PF_SLUG})(?:@(\d{{1,5}}))?")
@@ -247,26 +248,26 @@ def citation(detail: dict, slug: str) -> str:
 
 
 def parse_viewer(html: str, nid: str, section: str = "register", key_ok=None) -> list[tuple[str, str]]:
-    """(image key, IIIF info.json URL) per image, from the inline `imagesSet` of the viewer page."""
-    found = list(re.finditer(r"\bimagesSet\s*:\s*\[", html))
+    """(image key, IIIF info.json URL) per image, from the inline `imageServer` and `pathsSet` of the viewer page."""
+    servers = re.findall(r"\bimageServer\s*:\s*\"((?:[^\"\\]|\\.)*)\"", html)
+    if len(servers) != 1 or servers[0].replace("\\/", "/") != IMAGE_SERVER:
+        raise ResearchError("PARSE_ERROR", "Prohlížeč Porta fontium neuvádí očekávaný obrazový server.")
+    found = list(re.finditer(r"\bpathsSet\s*:\s*\[", html))
     if len(found) != 1:
-        raise ResearchError("PARSE_ERROR", "Prohlížeč Porta fontium neobsahuje očekávaný seznam snímků imagesSet.")
-    sources, _ = _read_array(html, found[0].end() - 1)
-    if not sources:
+        raise ResearchError("PARSE_ERROR", "Prohlížeč Porta fontium neobsahuje očekávaný seznam snímků pathsSet.")
+    paths, _ = _read_array(html, found[0].end() - 1)
+    if not paths:
         raise ResearchError("PARSE_ERROR", "Seznam snímků je prázdný.")
     result, seen = [], set()
-    for src in sources:
-        m = _DEEPZOOM.fullmatch(src)
+    for path in paths:
+        m = _IMAGE_PATH.fullmatch(path)
         if not m or ".." in m[1].split("/") or not m[1].startswith(section + "/"):
             raise ResearchError("PARSE_ERROR", "Neznámý tvar adresy snímku v prohlížeči.")
         key = m[1].rsplit("/", 1)[1]
         if not _KEY.fullmatch(key) or key in seen or (key_ok is not None and not key_ok(key)):
             raise ResearchError("PARSE_ERROR", "Neplatný nebo opakovaný název snímku.")
         seen.add(key)
-        info = iiif_from_deepzoom(BASE + src)
-        if info is None:
-            raise ResearchError("PARSE_ERROR", "Adresu snímku nelze převést na IIIF.")
-        result.append((key, info))
+        result.append((key, f"{BASE}{IMAGE_SERVER}?IIIF={path}/info.json"))
     urls = re.search(r"\burlsSet\s*:\s*\[", html)
     if urls:
         listed, _ = _read_array(html, urls.end() - 1)

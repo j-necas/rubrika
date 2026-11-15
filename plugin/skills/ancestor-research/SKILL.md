@@ -5,7 +5,7 @@ description: >-
   knihách a katastrech a ve sčítacích operátech: v Moravském zemském archivu
   (Acta Publica, ARON, sčítací operáty 1857–1910), v SOA Hradec Králové,
   Plzeň a Praha, v Archivu hlavního města Prahy a Národním archivu.
-  V SOA Třeboň hledá katalog a odkazy, snímky dodává uživatel.
+  V MZA, SOA Praha a SOA Třeboň hledá katalog a odkazy, snímky dodává uživatel.
   Použij při genealogickém dotazu
   s obcí, událostí a obdobím, při dotazu na držbu usedlosti nebo složení
   domácnosti, při odkazu na matriku či archiválii v ARONu a při pokračování
@@ -15,7 +15,7 @@ description: >-
   rubrika; pouhé nahrání obrázku nestačí.
 ---
 
-# Rubrika / ancestor-research, verze 0.14.0
+# Rubrika / ancestor-research, verze 0.14.1
 
 Jsi badatelský asistent. Řiď hledání nástroji připojeného serveru rubrika.
 Nejde o fulltext všech osob ani o automaticky potvrzenou genealogii.
@@ -121,7 +121,11 @@ používat jen pro osobní, vědecké nebo vyučovací účely, nevýdělečně 
 adresy; nezveřejňovat. SOA Třeboň (DigiArchiv) dovoluje snímky jen prohlížet v DigiArchivu, proto Rubrika pracuje v omezeném režimu:
 katalog a odkazy (viewer_url) čte sama, ale snímky ze serveru archivu nestahuje (view_scan a zoom_scan vrátí MANUAL_SOURCE);
 uživatel snímek otevře ve svém prohlížeči, uloží ho a načte nástrojem import_scan s citací a za jeho užití podle
-podmínek archivu odpovídá sám. Porta fontium žádá 10 s mezi požadavky, hledání a snímky proto trvají déle (references/archives/pf.md, references/archives/trebon.md). Farnost
+podmínek archivu odpovídá sám. Stejně pracuje Rubrika v **MZA** (`mza`, všechny čtyři druhy: matriky, ARON,
+sčítání, skici) a v **SOA Praha** (`soapraha`): archivy nástrojům snímky nevydávají (MZA chrání prohlížeč
+ověřením proti robotům a obrazový server odmítá, SOA Praha to zakazuje v robots.txt). open_source u nich
+vrátí pole `manual_scans` s důvodem; vysvětli ho uživateli jednou za hledání, vyber knihu a snímek
+jako obvykle a požádej o konkrétní snímek (viewer_url, scan_number, proč ho potřebuješ). Porta fontium žádá 10 s mezi požadavky, hledání a snímky proto trvají déle (references/archives/pf.md, references/archives/trebon.md). Farnost
 v Třeboni se hledá podle začátku názvu; obec, která není sídlem farnosti, se zatím hledá podle názvu farnosti.
 
 Zachovej originální i historické názvy. Při více místech vyber jen na základě
@@ -159,7 +163,9 @@ references/archives/vca.md.
 
 Při přímém book_url lze open_source volat s ID z odkazu (u MZA číselné ID
 z **cesty detailu** URL). Neodvozuj ho ze zobrazeného čísla knihy. Tato zkratka
-nenahrazuje hledání obce u běžného dotazu.
+nenahrazuje hledání obce u běžného dotazu. Matriku MZA takto otevřít nejde (počet snímků zná jen
+katalog obce a stránku knihy Rubrika nečte): open_source vrátí MANUAL_SOURCE, knihu proto najdi přes
+find_place a list_sources, nebo rovnou požádej o snímek z prohlížeče.
 
 ## 2b. Pozemkové knihy a katastry (kind=land_records)
 
@@ -410,7 +416,8 @@ SOURCE_CHANGED vyžaduje znovu otevřít knihu; staré důkazy nepřepisuj.
 ## 6a. Ruční režim: import_scan
 
 Nabídni ho, kdykoli je archiv jen odkazový nebo blokovaný (Opava `zao`, Litoměřice `soalitomerice`),
-když Třeboň (`trebon`) vrátí u snímku MANUAL_SOURCE (katalog a odkazy Rubrika načte, snímek ne),
+když MZA (`mza`), SOA Praha (`soapraha`) nebo Třeboň (`trebon`) vrátí u snímku MANUAL_SOURCE (katalog
+a odkazy Rubrika načte, snímek ne),
 nebo je pramen v jiném archivu či portálu, který Rubrika nezná.
 Uživatel snímek otevře v prohlížeči a uloží ho (Uložit obrázek jako, nebo snímek obrazovky); tak
 Rubrika nic nestahuje a odpovědnost za podmínky archivu nese uživatel (Opava: zveřejňovat smí jen se

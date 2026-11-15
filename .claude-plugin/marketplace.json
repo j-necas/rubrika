@@ -6,7 +6,7 @@
     {
       "name": "rubrika",
       "source": "./plugin",
-      "description": "Hledání předků v digitalizovaných pramenech sedmi českých archivů, s výřezy, přepisy a citacemi. SOA Třeboň: pouze katalog a odkazy. Verze pro vyzkoušení."
+      "description": "Hledání předků v digitalizovaných pramenech sedmi českých archivů, s výřezy, přepisy a citacemi. MZA, SOA Praha a SOA Třeboň: pouze katalog a odkazy, snímky dodává uživatel. Verze pro vyzkoušení."
     }
   ]
 }

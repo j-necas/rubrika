@@ -191,21 +191,30 @@ def census_detail(path):
 def viewer_page(nid):
     for slug in AMTS:
         if amts_nid(slug) == nid:
-            images = [f"/fcgi-bin/iipsrv.fcgi?DeepZoom={amts_dir(slug)}/{k}.jp2.dzi" for k in amts_keys(slug)]
+            images = [f"{amts_dir(slug)}/{k}.jp2" for k in amts_keys(slug)]
             urls = [f"iipimage/{nid}/{k}" for k in amts_keys(slug)]
             return _viewer(images, urls)
     for (group, nr), n in list(_nid.items()):
         if n == nid:
             path = next(c["path"] for c in CENSUS if (c["path"].rsplit("/", 1)[0] if c["path"].count("/") == 3 else c["path"]) == group)
-            images = [f"/fcgi-bin/iipsrv.fcgi?DeepZoom={house_dir(path, nr)}/{k}.jp2.dzi" for k in house_keys(path, nr)]
+            images = [f"{house_dir(path, nr)}/{k}.jp2" for k in house_keys(path, nr)]
             urls = [f"iipimage/{nid}/{k}" for k in house_keys(path, nr)]
             return _viewer(images, urls)
     return None
 
 
+def hdv_script(paths: list[str], urls: list[str]) -> str:
+    """The viewer configuration as the portal writes it: escaped slashes, image paths relative to the image server."""
+    def js(value) -> str:
+        return json.dumps(value).replace("/", "\\/")
+    return ('<script type="text/javascript">\n var wordspotting;\n hdv = new HDV({\n'
+            ' // Descriptor URLs are assembled in HDV from these relative paths.\n'
+            ' imageServer : ' + js("/fcgi-bin/iipsrv.fcgi") + ',\n urlsSet : ' + js(urls) + ',\n pathsSet : ' + js(paths) +
+            ',\n pagesSet : ' + json.dumps(list(range(1, len(paths) + 1))) + ',\n prefixUrl : "/images/"\n });</script>')
+
 def _viewer(images, urls):
     return ('<!doctype html><html lang="cs"><head><title>Prohlížeč | Porta fontium</title></head><body>'
-            '<script>hdv = new HDV({\n imagesSet : ' + json.dumps(images) + ',\n urlsSet : ' + json.dumps(urls) + '\n });</script></body></html>')
+            + hdv_script(images, urls) + '</body></html>')
 
 
 def handle_more(path, query, rows_per_page):

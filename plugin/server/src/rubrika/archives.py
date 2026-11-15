@@ -13,6 +13,14 @@ KINDS = ("parish_registers", "land_records", "census", "cadastral_maps")
 NOT_YET = "Zatím není v Rubrice napojen; otevřete archiv v prohlížeči."
 BOT_GATE = ("Archiv automatizovaný přístup blokuje ochranou proti botům; Rubrika ji neobchází. "
             "Matriku otevřete v prohlížeči.")
+# Archives that search their catalogue automatically but never let a tool fetch a scan: view_scan answers MANUAL_SOURCE
+# before any request and the user brings the scan in with import_scan.
+MZA_MANUAL = ("MZA od listopadu 2026 automatizované stahování snímků nedovoluje: matriky v Acta Publica chrání ověřením proti "
+              "robotům a snímky ARONu, sčítacích operátů a indikačních skic nástrojům odmítá. Rubrika v MZA hledá jen v katalozích; "
+              "snímek otevřete v prohlížeči archivu (viewer_url), uložte ho nebo udělejte snímek obrazovky a načtěte ho nástrojem "
+              "import_scan s citací.")
+SOAPRAHA_MANUAL = ("SOA Praha v robots.txt zakazuje automatizované stahování digitalizátů eBadatelny. Rubrika tam hledá jen "
+                   "v katalogu; snímek otevřete v prohlížeči archivu (viewer_url), uložte ho a načtěte nástrojem import_scan s citací.")
 
 
 @dataclass(frozen=True)
@@ -37,6 +45,8 @@ class Archive:
     request_headers: tuple[tuple[str, str], ...] = ()   # sent with every request to this archive (a normal browser header, e.g. Accept-Language)
     terms_notice: str | None = None    # shown to the user next to this archive's results (list_archives, find_place, open_source)
     allow_plain_http: bool = False     # the archive's host offers no TLS: its addresses use http:// (and only http://); checked in SourcePolicy
+    manual_scans: str | None = None    # set: the archive does not let tools fetch scans; the reason is shown and import_scan is the way in
+    scans_setting: str | None = None   # Settings attribute that lifts manual_scans (synthetic demo and tests only)
 
     def __post_init__(self):
         # Only a normal browser header that picks the language may be sent to an archive; nothing that could get around its protection.
@@ -85,7 +95,8 @@ ARCHIVES: dict[str, Archive] = {a.code: a for a in (
     Archive("mza", "Moravský zemský archiv v Brně", "Acta Publica, ARON, Sčítací operáty", "https://www.mza.cz/",
             "https://www.mza.cz/aplikace/podminky-pouziti-aplikace-aron/", KINDS,
             frozenset({"www.mza.cz", "mza.cz", "iipserver.mza.cz"}), _mza_route,
-            kind_settings=(("land_records", "aron_enabled"), ("census", "census_enabled"), ("cadastral_maps", "sketches_enabled"))),
+            kind_settings=(("land_records", "aron_enabled"), ("census", "census_enabled"), ("cadastral_maps", "sketches_enabled")),
+            manual_scans=MZA_MANUAL, scans_setting="mza_scans_enabled"),
     Archive("vca", "Státní oblastní archiv v Hradci Králové", "ARchiv ONline", f"https://{VCA_HOST}/",
             "https://soahradec.gov.cz/napoveda-archivu-online/co-v-archivu-online-najdete/",
             ("parish_registers", "land_records", "census"),
@@ -99,9 +110,9 @@ ARCHIVES: dict[str, Archive] = {a.code: a for a in (
             "https://soapraha.gov.cz/probadatele/", ("parish_registers", "land_records", "census"), frozenset({SOAPRAHA_HOST}), match_soapraha_route,
             enabled_setting="soapraha_enabled", daily_requests_setting="soapraha_global_daily_requests",
             kind_settings=(("land_records", "soapraha_land_records_enabled"), ("census", "soapraha_census_enabled")),
-            robots_mode="honor", min_interval=1.0,
-            note="Sbírka matrik a průvodní listinný materiál, Středočeský kraj (NAD 28); místa se hledají v seznamu lokalit archivu, snímky jsou celé JPEG bez výřezů na straně "
-                 "archivu (jedno stažení 1 až 8 MB na snímek); podmínky užití eBadatelna nezveřejňuje, při užití citujte archiv a fond. Ze záložky Archival records "
+            robots_mode="honor", min_interval=1.0, manual_scans=SOAPRAHA_MANUAL, scans_setting="soapraha_scans_enabled",
+            note="Sbírka matrik a průvodní listinný materiál, Středočeský kraj (NAD 28); místa se hledají v seznamu lokalit archivu; snímky Rubrika nestahuje "
+                 "(robots.txt archivu to nástrojům zakazuje), uživatel je načte nástrojem import_scan; podmínky užití eBadatelna nezveřejňuje, při užití citujte archiv a fond. Ze záložky Archival records "
                  "čte také sčítání lidu 1869 až 1910 (sčítací operáty okresních úřadů, po obcích a číslech popisných) a pozemkové knihy měst a velkostatků; "
                  "každý z těch druhů vyžaduje vlastní zapnutí (RUBRIKA_SOAPRAHA_CENSUS_ENABLED, RUBRIKA_SOAPRAHA_LAND_RECORDS_ENABLED)."),
     Archive("trebon", "Státní oblastní archiv v Třeboni", "DigiArchiv", f"https://{TREBON_HOST}/",

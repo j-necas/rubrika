@@ -13,11 +13,11 @@ spolky, školy) Rubrika nevypisuje.
 
 ## Podmínky a citace
 
-eBadatelna **nezveřejňuje podmínky užití** snímků a nemá robots.txt (odpoví HTML chybovou stránkou, tedy
-žádná pravidla). Badatelský řád SOA Praha žádá při využití informací uvést název archivu, fond a bližší
+eBadatelna **nezveřejňuje podmínky užití** snímků. Od listopadu 2026 její robots.txt **zakazuje automatizovaným
+nástrojům stahovat digitalizáty** (katalog povoluje), proto Rubrika snímky SOA Praha nestahuje (ruční režim níže). Badatelský řád SOA Praha žádá při využití informací uvést název archivu, fond a bližší
 označení archiválie. Proto každý doklad nese `citation` („Státní oblastní archiv v Praze, Sbírka matrik
 a průvodní listinný materiál, Středočeský kraj (NAD 28), <název knihy>“) a `viewer_url`; uveď je u každého nálezu. Snímky nešiř.
-Stahují se bez přihlášení; přihlášení a ZIP celé knihy Rubrika nikdy nepoužívá.
+Přihlášení a ZIP celé knihy Rubrika nikdy nepoužívá.
 
 ## Hledání místa
 
@@ -50,10 +50,11 @@ Pole `description` je text z popisu knihy v eBadatelně, ne tvrzení Rubriky.
 ## Otevření a snímky
 
 `open_source` načte detail knihy (lokality s variantami názvů, popis, počet snímků) a vrátí snímky
-`soapraha:book:<matrikaId>:<n>`; `scan_number` je pořadí snímku, ne folio. Snímek je **celý JPEG**
-(asi 1 až 3 MB, dvoustrana kolem 4000×3000 px); archiv nezná výřezy ani dlaždice. `view_scan` v jedné
-relaci otevře stránku prohlížeče snímku a stáhne JPEG (bez ní ho server nevydá), uloží ho do mezipaměti
-a výřezy (`zoom_scan`) se dělají lokálně; opakovaný pohled na stejný snímek nedělá žádný požadavek.
+`soapraha:book:<matrikaId>:<n>`; `scan_number` je pořadí snímku, ne folio, a `viewer_url` vede přímo na
+snímek v prohlížeči eBadatelny. **view_scan a zoom_scan vrátí MANUAL_SOURCE** a nic nestáhnou: dej uživateli
+`viewer_url`, ať snímek otevře, uloží (nebo udělá snímek obrazovky přiblíženého zápisu) a ty ho načteš přes
+import_scan (SKILL.md, 6a) s citací. Snímek je celá dvoustrana, kolem 4000×3000 px; uložený soubor proto
+stačí přiblížit lokálně (zoom_scan nad importovaným snímkem).
 
 ## Sčítání lidu (kind=census)
 

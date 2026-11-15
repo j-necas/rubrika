@@ -48,7 +48,9 @@ Rubrika se archivu představuje jménem a odkazem na projekt: User-Agent je
   prohlížeči, přesměrování na kontrolu) končí SOURCE_ACCESS_DENIED s `details.reason=bot_protection`
   a hodinovým cooldownem celého hostu (všech skupin cest na něm). Bránu Rubrika hledá i v odpovědích 401, 403,
   429, 503 a v jakékoli jiné odpovědi s HTML (prvních 64 kB). Běžná stránka, která jen obsahuje odkaz
-  s „captcha“ nebo skript Cloudflare `challenge-platform/scripts/jsd/main.js`, bránou není.
+  s „captcha“ nebo skript Cloudflare `challenge-platform/scripts/jsd/main.js`, bránou není. Bránou je i ALTCHA
+  (proof-of-work), která se spouští sama při načtení (`<altcha-widget auto="onload">`, prohlížeč matrik MZA);
+  ALTCHA jen u formuláře bránou není.
 - **robots.txt** má u každého archivu režim (`Archive.robots_mode`): `honor` (výchozí) zákaz respektuje
   a požadavek zastaví; `user_triggered` zákaz toleruje jen u požadavku vyvolaného uživatelem, zapíše
   ho do logu, do dokladu (`ImageRef.robots_disallowed`) a do reportu (`coverage.robots_tolerated`).
@@ -59,6 +61,16 @@ Rubrika se archivu představuje jménem a odkazem na projekt: User-Agent je
 - **Denní stropy:** na všechny požadavky na archiv (`Archive.daily_requests_setting`, u VČA `vca_global_daily_requests`, katalog, deskriptory,
   dlaždice, robots.txt) a na obrazové výsledky jedné knihy (`book_daily_images` = 150 za den).
   Cesty určené k hromadnému stahování (OAI, exporty, ZIP celých knih) v allowlistu nejsou nikdy.
+
+## MZA: snímky jen přes import_scan
+
+- Od listopadu 2026 MZA nástrojům snímky nevydává: detail matriky v Acta Publica skrývá prohlížeč za ALTCHA
+  (proof-of-work spuštěný při načtení) a obrazový server odpovídá na dlaždice ARONu, sčítacích operátů a skic 403.
+  Rubrika to neobchází (`Archive.manual_scans`): katalogy MZA čte dál, detail matriky nestahuje (stránky snímků
+  sestaví z počtu snímků v katalogu obce), view_scan a zoom_scan vrátí MANUAL_SOURCE před jakýmkoli požadavkem
+  a snímek dodá uživatel přes import_scan. Kniha otevřená jen z odkazu (bez katalogu obce) vrátí MANUAL_SOURCE.
+- Přepínače `RUBRIKA_MZA_SCANS_ENABLED` a `RUBRIKA_SOAPRAHA_SCANS_ENABLED` (výchozí false) zapíná jen syntetické demo
+  a testy; spouštěč pluginu je nezapíná.
 
 ## ARON
 
@@ -168,7 +180,9 @@ Rubrika se archivu představuje jménem a odkazem na projekt: User-Agent je
 - Celý JPEG: limit velikosti odpovědi, typ obsahu `image/jpeg`, magická bajtová kontrola, plný dekód a limit pixelů, teprve pak
   do mezipaměti (klíč = adresa prohlížeče snímku). Skupiny cooldownu `soapraha_catalog`, `soapraha_images`, `soapraha_robots`; brána
   proti botům zastaví celý host na hodinu. Vypínač `RUBRIKA_SOAPRAHA_ENABLED` (server výchozí false, plugin true), strop 1000 požadavků denně.
-- robots.txt je HTML chybová stránka, tedy bez pravidel. eBadatelna nezveřejňuje podmínky užití; doklady nesou citaci archivu a fondu.
+- robots.txt od listopadu 2026 zakazuje automatizovaným klientům `/d/` a `/a/` (digitalizáty); katalog povoluje. Rubrika proto snímky SOA Praha
+  nestahuje (`Archive.manual_scans`): view_scan a zoom_scan vrátí MANUAL_SOURCE před jakýmkoli požadavkem a snímek dodá uživatel
+  přes import_scan. eBadatelna nezveřejňuje podmínky užití; doklady nesou citaci archivu a fondu.
 
 ## Ruční režim, import_scan
 

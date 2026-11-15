@@ -1,4 +1,4 @@
-# Rubrika – hledání předků v archivech (0.14.0)
+# Rubrika – hledání předků v archivech (0.14.1)
 
 Plugin pro Claude Code a Codex, se skillem `ancestor-research` a lokálním
 MCP serverem v `server/`. Claude Desktop používá stejný server v balíčku
@@ -7,7 +7,7 @@ MCP serverem v `server/`. Claude Desktop používá stejný server v balíčku
 Rubrika hledá v pramenech MZA, SOA Hradec Králové, SOA Plzeň, SOA Praha,
 SOA Třeboň, Archivu hlavního města Prahy a Národního archivu: podle archivu
 v matrikách, pozemkových knihách, katastrech, sčítání a soupisech obyvatel.
-SOA Třeboň poskytuje jen katalog a odkazy; snímky dodává uživatel.
+MZA, SOA Praha a SOA Třeboň poskytují jen katalog a odkazy; snímky dodává uživatel.
 Opavu, Litoměřice a archiv map ČÚZK plugin pouze odkazuje.
 
 Vstupem je osoba, obec, událost a přibližné období. Asistent čte obrazy

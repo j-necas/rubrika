@@ -20,11 +20,14 @@ from .soupis import (FlatList, SearchBudget, collect, given_key, house_of, loose
 from .soupis import given_forms, in_table, same_given, surname_key as surname_key_of
 
 PREFIX = "ahmp:"
-ROOT_ID = 108399                  # Sbírka matrik › katolické (labels of its parishes start at the district)
-# The other children of the Sbírka matrik (node 108341): non-Catholic churches (ČCE, Czechoslovak, Orthodox, Old Catholic,
+# Node numbers of the public catalogue. The archive renumbered the whole tree in November 2026; when it does so again,
+# raise CATALOG_GENERATION too, so that tree nodes and book lists cached under the old numbers are never read again.
+CATALOG_GENERATION = 2
+ROOT_ID = 108589                  # Sbírka matrik › katolické (labels of its parishes start at the district)
+# The other children of the Sbírka matrik (node 108531): non-Catholic churches (ČCE, Czechoslovak, Orthodox, Old Catholic,
 # Greek Catholic), civil registers of the Magistrate and the district offices, and the death protocols. Their labels start
 # with the name given here, because the catalogue groups them by church or office, not by district.
-EXTRA_ROOTS = {111341: "Nekatolické matriky", 111659: "Civilní matriky Magistrátu", 108342: "Úmrtní protokoly"}
+EXTRA_ROOTS = {111545: "Nekatolické matriky", 111866: "Civilní matriky Magistrátu", 108532: "Úmrtní protokoly"}
 CATHOLIC_BRANCH = "Katolické matriky"
 MAX_LIST_PAGES = 40               # pages of one node list per call (9 rows each)
 TREE_REQUESTS_PER_CALL = 40       # HTTP requests (opener included) one find_place may spend on loading the parish tree
@@ -32,15 +35,15 @@ MIN_NODE_REQUESTS = 3
 MAX_PLACES = 25
 CITATION = "Archiv hlavního města Prahy, Sbírka matrik, sign. "
 
-# Soupis pražského obyvatelstva 1830–1910 (1920): two flat lists under node 168667, sorted by surname.
+# Soupis pražského obyvatelstva 1830–1910 (1920) (fond 4 Magistrát hl. m. Prahy I.): two flat lists under node 169032, sorted by surname.
 SOUPIS_TITLE = "Soupis pražského obyvatelstva 1830–1910"
-SOUPIS_SERIES = {168668: ("Pražští příslušníci", "domovská příslušnost Praha"),
-                 290432: ("Cizí příslušníci", "domovská příslušnost mimo Prahu")}
-# Všeobecné sčítání lidu (fond 61): … › Spisy › year › district; a district lists one row per house number.
+SOUPIS_SERIES = {169033: ("Pražští příslušníci", "domovská příslušnost Praha"),
+                 290797: ("Cizí příslušníci", "domovská příslušnost mimo Prahu")}
+# Všeobecné sčítání lidu (fond 61): … › Spisy (node CENSUS_ROOT_ID) › year › district; a district lists one row per house number.
 CENSUS_TITLE = "Všeobecné sčítání lidu"
-CENSUS_ROOT_ID = 514342
+CENSUS_ROOT_ID = 516575
 CENSUS_YEARS = frozenset({"1869", "1880", "1890"})       # the years the archive has put online
-SOUPIS_PARENT_ID = 168667
+SOUPIS_PARENT_ID = 169032
 MAX_REQUESTS_PER_CALL = 35        # every HTTP request of one list_sources call on a flat list: opener, node page, jumps, pages
 YEAR_BAND = 5                     # birth years collected around the years of the research; ±2 of them are candidates
 MAX_SHEETS = 90                   # rows of one surname listed per call (ten pages of nine)
@@ -257,6 +260,12 @@ def soupis_relevance(sheet: SoupisSheet, query: SearchQuery) -> dict:
     return person_relevance(sheet.given_name, sheet.birth_year, query)
 
 
+def cache_kind(name: str) -> str:
+    """Cached tree nodes, book lists and Soupis hints are keyed by catalogue node numbers, which mean something else after a
+    renumbering: the generation in the kind keeps entries of an older numbering from ever being read."""
+    return f"{name}@{CATALOG_GENERATION}"
+
+
 def is_soupis_node(node_id: int) -> bool:
     return node_id in SOUPIS_SERIES
 
@@ -271,7 +280,7 @@ class AhmpCatalog:
 
     # ------------------------------------------------------------------ tree
     def _node(self, node_id: int) -> dict | None:
-        return self.store.entity("ahmp_node", str(node_id), self.source.cfg.metadata_ttl)
+        return self.store.entity(cache_kind("ahmp_node"), str(node_id), self.source.cfg.metadata_ttl)
 
     def index(self, root: int | None = None, top: frozenset | None = None) -> tuple[list[Parish], list[tuple[int, tuple[str, ...]]]]:
         """Parishes known from cached nodes, and the nodes still to be fetched (with the path above them). `top` limits
@@ -321,7 +330,7 @@ class AhmpCatalog:
             node = await walk_node(self.source, self.site, session, node_id, remaining)
             if not node.complete:
                 return self.index(root, top)[0], False
-            self.store.put_entity("ahmp_node", str(node_id), {
+            self.store.put_entity(cache_kind("ahmp_node"), str(node_id), {
                 "id": node_id, "name": node.name, "fetched": time.time(), "books": len(node.books),
                 "children": [{"id": c.id, "name": c.name, "count": c.count, "expandable": c.expandable} for c in node.children]})
 
@@ -467,12 +476,12 @@ class AhmpCatalog:
             out, reasons, near, missed = {}, set(), [], []
             for idx, (target, gk) in enumerate(runs):
                 hint_key = f"{node_id}:{surname_key_of(target)}:{gk}:{band}"
-                hint = self.store.entity("ahmp_soupis_hint", hint_key, self.source.cfg.metadata_ttl)
+                hint = self.store.entity(cache_kind("ahmp_soupis_hint"), hint_key, self.source.cfg.metadata_ttl)
                 hint_row = hint["first"] if hint and hint.get("total") == flat.total else None
                 try:
                     first = await lower_bound(flat, before_of(target, gk), hint_row)
                     # every run that got its boundary is remembered, empty ones too; a repeat call then starts from it
-                    self.store.put_entity("ahmp_soupis_hint", hint_key, {"first": first, "total": flat.total})
+                    self.store.put_entity(cache_kind("ahmp_soupis_hint"), hint_key, {"first": first, "total": flat.total})
                     found = await collect(flat, first, matches, max(MAX_SHEETS - len(out), 1), MAX_COLLECT_PAGES)
                 except SearchBudget:
                     missed = runs[idx:]
@@ -614,14 +623,21 @@ class AhmpCatalog:
 
     async def books(self, sid, owner, place: Place) -> tuple[list[Book], bool, list[str]]:
         node_id = node_id_of(place.source_id)
-        cached = self.store.entity("ahmp_books", str(node_id), self.source.cfg.metadata_ttl)
+        cached = self.store.entity(cache_kind("ahmp_books"), str(node_id), self.source.cfg.metadata_ttl)
         if cached is None:
             node = await walk_node(self.source, self.site, self.site.session(sid, owner), node_id, MAX_LIST_PAGES)
             if not node.books and not node.warnings:
                 raise ResearchError("INVALID_ARGUMENT", "Tento uzel AHMP neobsahuje knihy; vyberte farnost z find_place.")
-            cached = {"rows": [row.__dict__ for row in node.books], "complete": node.complete, "warnings": node.warnings}
+            cached = {"rows": [row.__dict__ for row in node.books], "complete": node.complete, "warnings": node.warnings,
+                      "name": node.ancestors[-1][1] if node.ancestors else node.name}
             if node.complete:
-                self.store.put_entity("ahmp_books", str(node_id), cached)
+                self.store.put_entity(cache_kind("ahmp_books"), str(node_id), cached)
+        # A place saved before the archive renumbered its tree may now name another node: never list that node's books.
+        expected, found = " ".join(place.label.split(" › ")[-1].split()), " ".join(str(cached.get("name") or "").split())
+        if found and expected and found != expected:
+            raise ResearchError("SOURCE_CHANGED", f"Uzel katalogu AHMP {node_id} je teď „{found}“, ne „{expected}“: archiv "
+                                "katalog přečísloval. Vyhledejte farnost znovu nástrojem find_place a použijte nové place_id.",
+                                expected=expected, found=found)
         books = {}
         for row in cached["rows"]:
             book = self._book(BookRow(**row), place)

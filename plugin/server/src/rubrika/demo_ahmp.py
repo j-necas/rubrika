@@ -10,6 +10,7 @@ from urllib.parse import parse_qs, quote
 
 import httpx
 
+from .ahmp import SOUPIS_PARENT_ID, SOUPIS_SERIES
 from .bach import AHMP_SITE
 from .demo_zoomify import TILE, ZoomifyArchive, tier_sizes
 
@@ -22,7 +23,7 @@ TESTA, MARIE = 900020, 900021       # parishes of district 1 (Testa has more tha
 DEMETA = 900030                     # first of eleven parishes of district 2
 DEMOVICE, TESTOVICE, TESTOVICE_SUB = 900100, 900101, 900110
 GATE_XID = "00000000000000000000000000000ABC"
-PRAGUE_SERIES, FOREIGN_SERIES = 168668, 290432           # the two Soupis lists (public catalogue node numbers)
+PRAGUE_SERIES, FOREIGN_SERIES = SOUPIS_SERIES           # the two Soupis lists (public catalogue node numbers, as in ahmp.py)
 CENSUS_ROOT, CENSUS_1869, CENSUS_1880, CENSUS_1900 = 910100, 910101, 910102, 910103
 NOVE_MESTO, JOSEFOV, EMPTY_DISTRICT = 910110, 910111, 910112
 
@@ -147,7 +148,7 @@ def _soupis(series: int) -> list[tuple[str, str, str, int, str]]:
 
 SOUPIS = {series: _soupis(series) for series in (PRAGUE_SERIES, FOREIGN_SERIES)}
 SOUPIS_NAMES = {PRAGUE_SERIES: "Pražští příslušníci", FOREIGN_SERIES: "Cizí příslušníci"}
-SOUPIS_ROOT = 168667
+SOUPIS_ROOT = SOUPIS_PARENT_ID
 
 
 def soupis_label(series: int, i: int) -> str:

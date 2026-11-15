@@ -20,6 +20,11 @@ class Settings(BaseSettings):
     mza_images_global_daily_requests: int = Field(default=5000, ge=1)
     # MZA census records (Sčítací operáty): "Všechna práva vyhrazena"; the operator enables them deliberately.
     census_enabled: bool = False
+    # MZA (Acta Publica behind an ALTCHA proof-of-work, ARON/census/sketch tiles answer 403) and SOA Praha (robots.txt
+    # disallows the digitised copies) do not let tools fetch scans: by default their scans come only through import_scan.
+    # Only the synthetic demo and the tests turn these on; the plugin launcher never does.
+    mza_scans_enabled: bool = False
+    soapraha_scans_enabled: bool = False
     census_global_daily_requests: int = Field(default=1000, ge=1)
     # SOA Hradec Kralove (VCA): its own terms of use; the operator enables it deliberately.
     vca_enabled: bool = False

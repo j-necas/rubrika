@@ -5,7 +5,7 @@
 [![Licence MIT](https://img.shields.io/badge/licence-MIT-blue)](LICENSE)
 ![Plugin pro Claude](https://img.shields.io/badge/Claude-plugin-d97757)
 ![Plugin pro ChatGPT a Codex](https://img.shields.io/badge/ChatGPT%20%26%20Codex-plugin-10a37f)
-![Verze 0.14.0](https://img.shields.io/badge/verze-0.14.0-lightgrey)
+![Verze 0.14.1](https://img.shields.io/badge/verze-0.14.1-lightgrey)
 
 Rubrika je bezplatný plugin pro Claude a ChatGPT/Codex s **připravenými přístupy k českým
 archivům**. Pomůže vybrat správnou knihu, otevřít původní sken a uložit nález tak, abyste
@@ -43,13 +43,16 @@ Asistent vám pomůže i se čtením kurentu; správnost přepisu je potřeba ov
 
 | Archiv | Území | Matriky | Pozemkové knihy a katastry | Sčítání a soupisy obyvatel |
 |---|---|---|---|---|
-| [Moravský zemský archiv](https://www.mza.cz) (MZA) | Morava a část Vysočiny | ✓ | ✓ včetně stabilního katastru a indikačních skic | ✓ 1857–1910 |
+| [Moravský zemský archiv](https://www.mza.cz) (MZA) | Morava a část Vysočiny | katalog a odkazy* | katalog a odkazy* (včetně stabilního katastru a indikačních skic) | katalog a odkazy* 1857–1910 |
 | [SOA Hradec Králové](https://aron.vychodoceskearchivy.cz/) | Královéhradecký a Pardubický kraj, Havlíčkobrodsko a Semilsko | ✓ | městské pozemkové knihy | ✓ |
 | [SOA Plzeň](https://www.portafontium.eu/) (Porta fontium) | Plzeňský a Karlovarský kraj | ✓ | úřední a pozemkové knihy | ✓ 1869–1921 |
-| [SOA Praha](https://ebadatelna.soapraha.cz/) (eBadatelna) | Středočeský kraj | ✓ | pozemkové knihy měst a panství | ✓ 1869–1910, vybrané okresy |
+| [SOA Praha](https://ebadatelna.soapraha.cz/) (eBadatelna) | Středočeský kraj | katalog a odkazy* | katalog a odkazy* (pozemkové knihy měst a panství) | katalog a odkazy* 1869–1910, vybrané okresy |
 | [Archiv hlavního města Prahy](https://katalog.ahmp.cz/pragapublica/) | Praha | ✓ | – | ✓ sčítání 1869–1890, soupis obyvatelstva 1830–1910 |
 | [Národní archiv](https://vademecum.nacr.cz/vademecum/) | Čechy, Morava a část Slezska | židovské matriky 1784–1949 | – | pražské policejní přihlášky 1850–1914 |
 | [SOA Třeboň](https://digi.ceskearchivy.cz/) (DigiArchiv) | Jihočeský kraj | jen katalog a odkazy | jen katalog a odkazy | jen katalog a odkazy |
+
+\* MZA a SOA Praha od listopadu 2026 automatizované stahování snímků nedovolují. Rubrika v nich najde knihu
+a snímek a dá odkaz; snímek si uložíte v prohlížeči a Rubrika ho načte jako doklad.
 
 **Jen odkaz:** Zemský archiv v Opavě, SOA Litoměřice a Archiv map ČÚZK (indikační skici Čech
 a Slezska) Rubrika neprohledává, protože jejich portály automatizovaný přístup nepouštějí.
@@ -282,9 +285,10 @@ Celé znění: **[Ohleduplnost k archivům a odpovědnost](docs/PRAVIDLA.md)**.
 
 ## Stav projektu
 
-Rubrika je verze pro vyzkoušení (0.14.0). Hledání v MZA (matriky, pozemkové knihy, sčítací operáty,
-stabilní katastr) je vyzkoušené na skutečných datech. Hledání ve všech ostatních archivech
-je ověřené na živých archivech od hledání po otevření snímku (u Třeboně jen katalog a odkazy).
+Rubrika je verze pro vyzkoušení (0.14.1). Hledání v MZA (matriky, pozemkové knihy, sčítací operáty,
+stabilní katastr) je vyzkoušené na skutečných datech; od listopadu 2026 v MZA hledá jen v katalozích a snímky
+dodáváte z prohlížeče. Hledání ve všech ostatních archivech je ověřené na živých archivech od hledání po otevření
+snímku (u MZA, SOA Praha a Třeboně jen katalog a odkazy).
 Automatické testy běží na Linuxu, macOS i Windows.
 Archivy, jejich podmínky a co v nich Rubrika umí: [archivy](docs/ARCHIVY.md).
 
@@ -303,8 +307,8 @@ Rubrika is a free plugin for Claude and ChatGPT/Codex with built-in access to di
 (parish registers, land records, cadastral maps, censuses). It helps locate original scans and saves findings with
 image crops, transcriptions and source citations, so research can continue across conversations and be exported as GEDCOM
 (on request also as a family package: GEDCOM with the crops, a standalone HTML page and a ZIP, saved on your own disk).
-It searches seven archives: the Moravian Land Archive (MZA),
-the State Regional Archives in Hradec Králové, Plzeň (Porta fontium), Prague (eBadatelna) and Třeboň (DigiArchiv,
-catalogue and links only), the Prague City Archives and the National Archives (Jewish registers, Prague police
+It searches seven archives: the Moravian Land Archive (MZA, catalogues and links only),
+the State Regional Archives in Hradec Králové, Plzeň (Porta fontium), Prague (eBadatelna, catalogue and links only)
+and Třeboň (DigiArchiv, catalogue and links only), the Prague City Archives and the National Archives (Jewish registers, Prague police
 registrations). Scans saved from the browser can be imported as evidence. Other archives are only linked, not
 searched. The documentation is in Czech.

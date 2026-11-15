@@ -1,4 +1,4 @@
-# MCP a datový kontrakt, verze 0.14.0
+# MCP a datový kontrakt, verze 0.14.1
 
 Oficiální MCP adaptér je v `server.py`, samostatně testované operace jsou
 v `service.py`. Server běží lokálně a s Claude komunikuje přes stdio. Každý nástroj vrací
@@ -85,7 +85,7 @@ místo (nejvýš 2 místa, celkem nejvýš 12 stran po 40 knihách na volání, 
 (knihy bez značek zůstanou, `needs_review`); prázdný výsledek dá varování a `listing_complete=false`. `find_place` bez okresu
 a bez `archives` pf neprohledává (`Archive.auto_search=false`, varování) a řadí podle značek datace (`*` narození, `oo` oddaní, `+` zemřelí,
 `i` index). Roky, `fund_marks` a `district_archive` odmítá. Knihy `pf:book:<archiv>/<kniha>`, snímky
-`pf:book:<archiv>/<kniha>:<n>`; `open_source` čte detail a prohlížeč (`imagesSet`) a vrací `citation` s adresou knihy,
+`pf:book:<archiv>/<kniha>:<n>`; `open_source` čte detail a prohlížeč (`imageServer` a `pathsSet`, od listopadu 2026; dřívější `imagesSet` už portál neposílá) a vrací `citation` s adresou knihy,
 snímky jsou IIIF (`fcgi-bin/iipsrv.fcgi?IIIF=register/…`). Výstupy `find_place`, `list_sources` a `open_source` nesou
 `terms_notice` (§ 92 autorského zákona); `list_archives` ho vrací u každého archivu (`null`, když žádné není), `viewer_url`
 je adresa snímku v portálu (`/iipimage/<nid>/<klíč>`). Zapíná ho `RUBRIKA_PF_ENABLED` (server výchozí false, plugin true),
@@ -112,6 +112,15 @@ místo je fond, panství nebo obec v jednom roce (`trebon:place:l<id>` pozemkov�
 (`INVALID_ARGUMENT`). Snímky všech druhů jen přes `viewer_url` (`MANUAL_SOURCE`).
 Pace 2 s, robots.txt se dodržuje (`robots_mode` `honor`). Zapíná ho `RUBRIKA_TREBON_ENABLED` (server výchozí false, plugin true),
 strop `RUBRIKA_TREBON_GLOBAL_DAILY_REQUESTS` (800). Podrobnosti: `plugin/skills/ancestor-research/references/archives/trebon.md`.
+
+**Archivy bez snímků pro nástroje (`Archive.manual_scans`): MZA a SOA Praha.** Od listopadu 2026 MZA nástrojům snímky
+nevydává (prohlížeč matrik za ALTCHA, dlaždice ARONu, sčítání a skic 403) a robots.txt SOA Praha zakazuje digitalizáty.
+Katalogy (`find_place`, `list_sources`, `open_source`) fungují dál; `open_source` vrací pole `manual_scans` s důvodem a
+`list_archives` ho uvádí u archivu. `view_scan` a `zoom_scan` (i nad dřívějším přehledem) vrací `MANUAL_SOURCE`
+s `viewer_url`, `citation` a `scan_number` dřív, než cokoli stáhnou; snímek dodá uživatel přes `import_scan` (jeho snímky
+`user:…` se zobrazují běžně). Matrika MZA se otevírá bez požadavku: snímky `page_…` mají `source_type` `manual`, počet
+z katalogu obce (`image_count`) a `viewer_url` = stránka knihy; kniha otevřená jen z `book_url` vrací `MANUAL_SOURCE`.
+Přepínače `RUBRIKA_MZA_SCANS_ENABLED` a `RUBRIKA_SOAPRAHA_SCANS_ENABLED` (výchozí false) slouží jen syntetickému demu a testům.
 
 SOA Praha (kód `soapraha`, eBadatelna, Apache Wicket): `parish_registers` (fond NAD 28) a také `census` a `land_records`
 z archiválií (`soapraha:unit:<archivalieId>`, snímky `soapraha:unit:<id>:<n>`, `viewer_url` `/a/<id>/<n>`; názvy souborů JPEG nesou název
@@ -142,8 +151,8 @@ nezačne stahovat. Místa `ahmp:node:<číslo>` (label nese cestu), `list_source
 Session katalogu (cookie) žije jen uvnitř jednoho volání nástroje. Podrobnosti:
 `plugin/skills/ancestor-research/references/archives/ahmp.md`.
 
-`kind="census"` u `ahmp`: `find_place` vrací vždy dvě řady Soupisu pražského obyvatelstva 1830–1910 (`ahmp:node:168668`
-Pražští příslušníci, `ahmp:node:290432` Cizí příslušníci; bez požadavku na archiv) a obvody sčítání 1869/1880/1890.
+`kind="census"` u `ahmp`: `find_place` vrací vždy dvě řady Soupisu pražského obyvatelstva 1830–1910 (`ahmp:node:169033`
+Pražští příslušníci, `ahmp:node:290797` Cizí příslušníci; bez požadavku na archiv) a obvody sčítání 1869/1880/1890.
 `list_sources` na řadě Soupisu vyžaduje `person.surname` v zadání (jinak `INVALID_ARGUMENT`), bere i `person.given_name` a
 rok narození (při `event_type=birth` se sebere pásmo ±5 let, ±2 je candidate); půlením seznamu skokem na řádek najde příjmení (jeden strop 35
 požadavků na celé volání včetně obnovy relace, 10 stránek a 90 listů na sběr; každý pravopis příjmení a každý česko-německý tvar jména je vlastní běh; při seříznutí `listing_complete=false` a varování). Jednotka

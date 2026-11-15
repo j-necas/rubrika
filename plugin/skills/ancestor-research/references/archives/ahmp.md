@@ -64,7 +64,7 @@ Citace: „Archiv hlavního města Prahy, Sbírka matrik, sign. <signatura>“; 
   snímku). Dvě řady: **Pražští příslušníci** (domovská příslušnost Praha, 121 763 listů) a **Cizí příslušníci**
   (domovská příslušnost jinde, 146 554 listů, digitalizováno jen zčásti). Nevíš-li, prohledej obě.
 - **Použití**: `find_place(kind="census", archives=["ahmp"])` (nebo okres Praha) vrátí obě řady jako místa
-  `ahmp:node:168668` / `ahmp:node:290432`. `list_sources` na jedné z nich potřebuje v zadání `person.surname`
+  `ahmp:node:169033` / `ahmp:node:290797`. `list_sources` na jedné z nich potřebuje v zadání `person.surname`
   (jinak `INVALID_ARGUMENT`: doplň přes `revise_research`), lépe i `person.given_name` a rok narození.
   Jednotka `ahmp:book:<xid>` je jeden list; `open_source` cituje „… Soupis pražského obyvatelstva 1830–1910, <řada>,
   karton n, příjmení, jméno (*rok)“ (karton se čte z detailu listu jedním požadavkem).
@@ -98,7 +98,7 @@ Citace: „Archiv hlavního města Prahy, Sbírka matrik, sign. <signatura>“; 
 - **Známá rizika řazení** (odvozeno z pár desítek řádků, nepotvrzeno): umístění „ch“ za „h“, německých ä/ö/ü (bereme jako a/o/u),
   „ß“ (jako ss), zdvojených písmen (řadí se po písmenech, při porovnání jmen se sloučí), jinak psaných křestních jmen mimo
   Josef/Joseph a diakritiky u příjmení (hledá se i bez ní). Když příjmení leží v sousední skupině, pomůže zkusit variantu.
-- **Sčítání 1869, 1880, 1890** (fond 61 Všeobecné sčítání lidu, uzel 514342): `find_place(kind="census",
+- **Sčítání 1869, 1880, 1890** (fond 61 Všeobecné sčítání lidu, uzel 516575): `find_place(kind="census",
   archives=["ahmp"], term="Nové Město" nebo "1880")` vrátí obvody příslušných let jako místa; `list_sources`
   potřebuje `person.house_number` a najde řádek domu (číslo popisné) půlením seznamu. Jednotka nese
   `house_numbers` a `relevance.house_number_covered`; snímky jsou sčítací listy domácností (desítky na dům).

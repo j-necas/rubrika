@@ -16,6 +16,21 @@ příhraničních farností, které mohou ležet v sousedním archivu). Čtyři 
 Místa sčítání nesou `place_kind` (obec / cobec). Hledání podle obce vrací i sady jejích částí;
 hledání podle části obce není omezené na mateřskou obec, proto u něj vždy použij district_archive.
 
+## Snímky: ruční režim (od listopadu 2026)
+
+MZA automatizované stahování snímků nedovoluje: prohlížeč matrik v Acta Publica chrání ověřením proti robotům
+a obrazový server snímky ARONu, sčítacích operátů a skic nástrojům odmítá (403). Katalogy (find_place,
+list_sources, open_source) fungují dál, ale **view_scan a zoom_scan vrátí u všech čtyř druhů MANUAL_SOURCE**
+(s `viewer_url` a `scan_number`) a archiv tím nic nestojí. Neobcházej to a nezkoušej snímek získat jinudy.
+
+- Z katalogu vyber knihu a snímek jako obvykle (období, rejstřík, odhad poměrem), pak uživateli dej `viewer_url`
+  a číslo snímku. U matrik vede `viewer_url` na stránku knihy; „Části matriky“ tam ukazují rozsahy snímků
+  po obcích a druzích zápisů. Uživatel přejde na snímek, přiblíží zápis, uloží snímek obrazovky do Stažených
+  souborů a ty ho načteš přes import_scan (SKILL.md, 6a) s citací archivu, knihy a snímku.
+- Na orientaci (rok v záhlaví, hranice částí) stačí snímek celé dvoustrany; ke čtení jmen požádej o přiblížený
+  zápis. Žádej jen snímky, které opravdu potřebuješ, a řekni proč (který rok nebo zápis na nich čekáš).
+- Dřívější doklady a výřezy z MZA uložené v hledání zůstávají platné (show_saved_evidence, zpráva, GEDCOM).
+
 ## Matriky (Acta Publica)
 
 - Katalog řadí knihy k **obcím**, ne k farnostem: hledej obec, kde se událost stala, ne sídlo
@@ -56,8 +71,8 @@ hledání podle části obce není omezené na mateřskou obec, proto u něj vž
 - Obsah jsou **parcelní protokoly**: každá parcela s držitelem (jméno, číslo domu), kulturou a výměrou, sepsané při zaměřování
   v letech 1824–1843; kopie a reambulace sahají do 70. let 19. století. Slouží ke spojení čísla popisného, parcely a majitele
   kolem roku 1830. Písmo je německé (kurent), jména jsou zapsána německy.
-- Podle ARONu je **digitalizováno** zhruba 3 600 jednotek (kopií protokolů) z asi 3 200 katastrů, na stejném obrazovém serveru jako matriky,
-  takže se otevírají a prohlížejí normálně (list_sources s `fund_marks=["D 10"]`, open_source, view_scan, zoom_scan). Neplatí, že by D 10 bývalo
+- Podle ARONu je **digitalizováno** zhruba 3 600 jednotek (kopií protokolů) z asi 3 200 katastrů, na stejném obrazovém serveru jako matriky;
+  otevírají se normálně (list_sources s `fund_marks=["D 10"]`, open_source), snímek ale dodá uživatel (ruční režim výše). Neplatí, že by D 10 bývalo
   bez digitalizátu; nedigitalizovaná jednotka se pozná stejně jako jinde (UNSUPPORTED_SOURCE).
 - Výpis místa s mnoha fondy stáhne značky fondů (nejvýš 10 na výpis); použij `fund_marks=["D 10"]`, a nenašel-li se D 10, zkus
   vypsat bez `digitized_only`.
@@ -82,11 +97,10 @@ hledání podle části obce není omezené na mateřskou obec, proto u něj vž
   vysvětlují chybějící části.
 - open_source dá dvě „stránky“: líc (`scan_number` 1) a rub (2, je-li). Na rubu mohou být poznámky; jeho obsah se liší, proto ho prohlédni. Citace:
   „Moravský zemský archiv v Brně, fond D 9 Stabilní katastr – indikační skici, <katastr>, <MOR…>“.
-- **Cena:** každá dlaždice je jeden požadavek (asi 1 s). Přehled stojí zhruba tolik požadavků, kolik má skica dlaždic v mřížce (4×3 = 12, 4×14 = 56); má-li mřížku větší než limit, nebo stačí-li náhled `map.jpg` (jediný soubor, jen 54×43 px na dlaždici mřížky, tedy nízké rozlišení; jen pro líc), stojí 1 požadavek. Obraz se nikdy nezvětšuje: je-li úroveň nebo náhled hrubší než požadováno, vrátí se v původní velikosti s `low_resolution: true`, `effective_scale` a varováním, a pro čtení je třeba zvětšit menší oblast. Výřez stojí nejvýš 64 požadavků; Rubrika sama zvolí nejhrubší úroveň, která vyhoví, a u příliš velké oblasti vrátí REGION_TOO_LARGE s výzvou k menší oblasti. Výřez zhruba 650×520 px zdroje obvykle stačí ke čtení čísel parcel a domů.
-- view_scan dá přehled zhruba na 1000 px: dost k orientaci, ne ke čtení. Jména a čísla čti výřezem (zoom_scan) na malé oblasti; jeden
-  výřez smí mít nejvýš 64 dlaždic (jinak REGION_TOO_LARGE, rozděl oblast). Skica není obdélník: prázdná místa (bez dlaždice) jsou bílá.
+- Snímek skici dodá uživatel (ruční režim výše): v prohlížeči archivu přiblíží oblast kolem hledaného domu a uloží snímek
+  obrazovky; na čtení čísel parcel a domů stačí výřez zhruba 650×520 px skici v plném rozlišení.
 - Podmínky: obrazy jsou k prohlížení; publikovat je jinde bez souhlasu MZA nelze a zasahovat do technické podstaty stránek se nesmí.
-  Rubrika proto nestahuje hromadně a každý požadavek jde na pokyn uživatele.
+  Rubrika skici nestahuje; snímek obrazovky ukazuj jen v konverzaci.
 - **Čechy a Slezsko mimo MZA**: skici jsou v Národním archivu (Čechy) a Zemském archivu v Opavě (Slezsko), obojí přes archiv ČÚZK
   (https://ags.cuzk.gov.cz/archiv/). Ten Rubrika nevolá (mapové služby vyžadují token, který ČÚZK vydává jen vlastní aplikaci,
   a data jsou placená); vrací jen odkaz (`not_searched`, archiv `cuzk`) a pokyn, jak katastr v mapě najít.

@@ -14,7 +14,7 @@ a v [Třeboni](https://digi.ceskearchivy.cz/) (DigiArchiv, jen katalog a odkazy)
 
 | Archiv | Území | Pramen | K čemu je dobrý |
 |---|---|---|---|
-| **MZA** | Morava a část Vysočiny | **Matriky** (Acta Publica) | narození, sňatky a úmrtí, včetně rejstříků |
+| **MZA** (jen katalogy a odkazy, snímky z prohlížeče) | Morava a část Vysočiny | **Matriky** (Acta Publica) | narození, sňatky a úmrtí, včetně rejstříků |
 | | | **Pozemkové knihy a katastry** (ARON) | kdo vlastnil usedlost, převody, dědictví; posune pátrání před začátek matrik |
 | | | **Sčítací operáty** 1857–1910 | složení domácnosti, věk, původ a zaměstnání členů rodiny |
 | | | **Stabilní katastr** (1824–1843): parcelní protokoly (fond D 10) a **indikační skici** (D 9) | kdo držel parcelu a dům kolem roku 1830; skica je mapa katastru s čísly domů a jmény držitelů |
@@ -24,7 +24,7 @@ a v [Třeboni](https://digi.ceskearchivy.cz/) (DigiArchiv, jen katalog a odkazy)
 | **SOA Plzeň, Porta fontium** (`pf`) | Plzeňský a Karlovarský kraj (i Cheb, Karlovy Vary, Sokolov) | **Matriky** | narození, sňatky a úmrtí ze „Sbírky matrik západních Čech“; hledá se podle názvu místa (i německého), snímky se čtou pomalu (10 s na požadavek) |
 | | | **Úřední a pozemkové knihy** | pozemkové knihy, radní protokoly a další úřední knihy měst a panství |
 | | | **Sčítání lidu** | operáty po obcích a domech (1869–1921, podle dochování) |
-| **SOA Praha** (`soapraha`, eBadatelna) | Středočeský kraj | **Matriky** | narození, sňatky a úmrtí ze Sbírky matrik Středočeského kraje (asi 11 800 knih); hledá se podle obce nebo osady |
+| **SOA Praha** (`soapraha`, eBadatelna; jen katalog a odkazy, snímky z prohlížeče) | Středočeský kraj | **Matriky** | narození, sňatky a úmrtí ze Sbírky matrik Středočeského kraje (asi 11 800 knih); hledá se podle obce nebo osady |
 | | | **Sčítání lidu** 1869–1910 (vybrané okresy) | operáty po obcích a rozsazích čísel popisných |
 | | | **Pozemkové knihy** měst a panství | pozemkové, gruntovní a purkrechtní knihy, urbáře |
 | **Archiv hlavního města Prahy** (`ahmp`) | Praha | **Matriky** | katolické, nekatolické (evangelické, husitské, pravoslavné…) a civilní matriky ze Sbírky matrik (1584–1949); hledá se podle farnosti, sboru nebo části Prahy |
@@ -68,10 +68,14 @@ souborech (nejvýš 30 dní starých) a ve své složce `import`, nic jiného.
 
 **Podmínky MZA.** Instalací a použitím přebíráte
 [podmínky užití archivních aplikací MZA](https://www.mza.cz/aplikace/podminky-pouziti-aplikace-aron/).
-Skeny slouží jen vašemu vlastnímu bádání; bez souhlasu archivu je nezveřejňujte.
+Skeny slouží jen vašemu vlastnímu bádání; bez souhlasu archivu je nezveřejňujte. Od listopadu 2026 MZA
+automatizované stahování snímků nedovoluje: prohlížeč matrik chrání ověřením proti robotům a obrazový server
+snímky nástrojům odmítá. Rubrika tuto ochranu neobchází. V MZA proto prohledává jen katalogy (matriky, ARON,
+sčítací operáty, skici), vybere knihu a snímek a dá na něj odkaz; snímek si otevřete a uložíte v prohlížeči
+a Rubrika ho načte jako doklad (ruční režim výše).
 
-**Indikační skici MZA.** Podmínky služby dovolují skici prohlížet a zakazují je zveřejňovat jinde; Rubrika načte
-jen dlaždice, které potřebuje pro náhled nebo výřez, a u každého dokladu uvádí citaci a odkaz na skicu v MZA.
+**Indikační skici MZA.** Podmínky služby dovolují skici prohlížet a zakazují je zveřejňovat jinde; Rubrika skici
+najde a dá odkaz, snímek si uložíte v prohlížeči. U každého dokladu uvádí citaci a odkaz na skicu v MZA.
 Vypnout je lze proměnnou `RUBRIKA_SKETCHES_ENABLED=false`.
 
 **Podmínky SOA Hradec Králové.** Archiv na svých stránkách dovoluje snímky prohlížet i stahovat;
@@ -85,9 +89,10 @@ z Porta fontium ukazuje citaci a adresu snímku v portálu a asistent vám podm�
 tohoto archivu. Portál žádá 10 s mezi požadavky, hledání proto trvá déle. Matriky mladší než ochranné lhůty portál
 nezveřejňuje. Vypnout ho lze proměnnou `RUBRIKA_PF_ENABLED=false`.
 
-**Podmínky SOA Praha.** eBadatelna nemá robots.txt ani zveřejněné podmínky užití. Badatelský řád archivu žádá
-při využití a zveřejnění uvést archiv a fond; Rubrika je uvádí v citaci každého dokladu. Snímky se stahují celé
-(jak je nabízí prohlížeč archivu) a výřezy se dělají u vás v počítači. Vypnout ji lze proměnnou `RUBRIKA_SOAPRAHA_ENABLED=false`.
+**Podmínky SOA Praha.** eBadatelna nezveřejňuje podmínky užití; od listopadu 2026 její robots.txt zakazuje
+automatizovaným nástrojům stahovat digitalizáty. Rubrika proto v eBadatelně prohledává jen katalog a dá odkaz
+na snímek; snímek si uložíte v prohlížeči a Rubrika ho načte jako doklad. Badatelský řád archivu žádá při využití
+a zveřejnění uvést archiv a fond; Rubrika je uvádí v citaci každého dokladu. Vypnout ji lze proměnnou `RUBRIKA_SOAPRAHA_ENABLED=false`.
 
 **Podmínky SOA Třeboň.** Archiv zveřejňuje snímky jen k prohlížení ve svém DigiArchivu; kopírování,
 zveřejňování, prodej nebo užití v jiných projektech zakazuje bez souhlasu vlastníka. Obrazový server navíc

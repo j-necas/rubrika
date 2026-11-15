@@ -325,7 +325,7 @@ class Observation(Model):
     historical_page: ShortText | None = None
     year: int | None = Field(default=None, ge=1000, le=2200)
     section: ShortText | None = None
-    skill_version: str = Field(default="0.14.0", max_length=30)
+    skill_version: str = Field(default="0.14.1", max_length=30)
     links: list[ObservationLink] = Field(default_factory=list, max_length=10)
 
     @model_validator(mode="after")

@@ -326,6 +326,19 @@ class Catalog:
             pending.extend(u for u in pages if u not in visited)
         return list(books.values()),not warnings,warnings
 
+    def shell_pages(self, book: Book) -> list[Page]:
+        """The scans of a book, numbered from the catalogue's image count and never fetched: MZA protects the image viewer
+        against tools (an ALTCHA proof-of-work) and does not allow scans to be downloaded. The user reads the scan in the
+        archive's viewer and imports it with import_scan."""
+        total = book.image_count
+        if not total or total < 1:
+            raise ResearchError("NOT_FOUND", "Katalog neuvádí počet snímků knihy.")
+        manifest = hashlib.sha256(json.dumps(["manual", book.source_id, total]).encode()).hexdigest()
+        return [Page(page_id="page_" + hashlib.sha256(f"{book.source_id}\0manual\0{n}".encode()).hexdigest()[:28],
+                     book_id=book.source_id, scan_number=n, image_key=f"scan-{n}", source_url=book.detail_url,
+                     viewer_url=book.detail_url, source_type="manual", manifest_sha256=manifest)
+                for n in range(1, total + 1)]
+
     async def pages(self,sid,owner,book):
         body=await self.source.fetch(sid,owner,book.detail_url,kind="html")
         pages=parse_pages(body.decode("utf-8-sig"),book)

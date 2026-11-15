@@ -10,6 +10,7 @@ from PIL import Image
 
 from rubrika import archives as A
 from rubrika import demo_ahmp as D
+from rubrika.ahmp import cache_kind
 from rubrika.config import Settings
 from rubrika.network import SafeSource
 from rubrika.service import ResearchService
@@ -144,7 +145,7 @@ async def test_tree_walk_stops_at_the_request_budget_and_resumes(env, monkeypatc
     sid = await research(service)
 
     def cached():
-        return sum(1 for n in D.TREE if store.entity("ahmp_node", str(n), 10**9) is not None)
+        return sum(1 for n in D.TREE if store.entity(cache_kind("ahmp_node"), str(n), 10**9) is not None)
 
     data = await find(service, sid, "Výplně")
     assert any("postupně" in w for w in data["warnings"]) and len(archive.catalog_requests()) <= 6
@@ -158,6 +159,39 @@ async def test_tree_walk_stops_at_the_request_budget_and_resumes(env, monkeypatc
         seen = cached()
     assert calls == CALLS_TO_WALK_THE_TREE
     assert len(data["places"]) >= 2
+
+
+@pytest.mark.asyncio
+async def test_cache_of_an_older_catalogue_numbering_is_never_read(env):
+    """After the archive renumbers its tree, a node number cached before means another node: the old tree and book lists
+    (kinds of an earlier generation) must not produce places or books."""
+    service, archive, store = env
+    stale_node = {"id": D.ROOT, "name": "katolické", "fetched": 0, "books": 0,
+                  "children": [{"id": D.TESTA, "name": "Kostel Starého čísla (STČ)", "count": 3, "expandable": False}]}
+    stale_books = {"rows": [], "complete": True, "warnings": []}
+    for kind in ("ahmp_node", "ahmp_node@1"):
+        store.put_entity(kind, str(D.ROOT), stale_node)
+    for kind in ("ahmp_books", "ahmp_books@1"):
+        store.put_entity(kind, str(D.TESTA), stale_books)
+    sid = await research(service)
+    assert (await find(service, sid, "Starého čísla"))["places"] == []
+    places, listed = await listing(service, sid)
+    assert places["places"][0]["label"] == TESTA_LABEL
+    assert listed["total"] > 0 and archive.catalog_requests()
+
+
+@pytest.mark.asyncio
+async def test_place_saved_before_renumbering_does_not_list_another_parish(env):
+    """A place id from an older numbering that now names another node stops instead of listing that node's books."""
+    service, archive, store = env
+    sid = await research(service)
+    places = await find(service, sid)
+    place = places["places"][0]
+    saved = store.entity("place", place["source_id"])
+    store.put_entity("place", place["source_id"], {**saved, "label": "Praha I › Kostel sv. Jiného (JIN)"})
+    err = await failing(service, "list_sources", research_id=sid, place_ids=[place["source_id"]], kind="parish_registers")
+    assert err["code"] == "SOURCE_CHANGED" and "find_place" in err["message"]
+    assert err["details"]["found"] == "Kostel sv. Testa (TST)"
 
 
 @pytest.mark.asyncio

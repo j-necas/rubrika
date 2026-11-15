@@ -41,3 +41,15 @@ def test_captcha_widget_with_reversed_attribute_order_is_a_gate():
 
 def test_just_a_moment_with_cf_chl_is_a_gate():
     assert is_bot_gate(b'<html><title>Just a moment...</title><script>window._cf_chl_opt={}</script></html>',content_type='text/html')
+
+
+def test_altcha_that_starts_by_itself_is_a_gate_even_on_a_large_page():
+    """The MZA register detail: a full page whose scans wait behind an ALTCHA proof-of-work started on load."""
+    body=('<html><body>' + '<p>Části matriky</p>'*1200 + '<div id="altcha-gate"><strong>Chviličku strpení, ověřuji, že nejste robot...'
+          '</strong><altcha-widget id="altcha-gate-widget" auto="onload" challenge="https://www.mza.cz/actapublica/altcha/challenge" '
+          'style="position:absolute"></altcha-widget></div></body></html>').encode()
+    assert len(body) > 20000 and is_bot_gate(body,content_type='text/html')
+
+def test_altcha_guarding_only_a_form_is_not_a_gate():
+    body=b'<html><body><form action="/kontakt" method="post"><textarea name="t"></textarea><altcha-widget challenge="/altcha/challenge"></altcha-widget></form></body></html>'
+    assert not is_bot_gate(body,content_type='text/html')

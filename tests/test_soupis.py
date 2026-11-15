@@ -106,7 +106,7 @@ async def env(tmp_path):
 
 def flat_of(source, sid, node=D.PRAGUE_SERIES, limit=25):
     session = S.session(sid, "alice")
-    return FlatList(source, S, session, node, session.requests + limit, {168667: 10120, D.CENSUS_ROOT: 10125})
+    return FlatList(source, S, session, node, session.requests + limit, {169032: 10120, D.CENSUS_ROOT: 10125})
 
 
 def expected(node, lemma):
@@ -225,7 +225,7 @@ async def test_census_house_numbers_are_found_by_bisection(env):
 @pytest.mark.asyncio
 async def test_soupis_rows_are_refused_outside_the_nodes_that_own_them(env):
     source, _, sid = env
-    for extra in (None, {999: 10120}, {168667: 10125}):
+    for extra in (None, {999: 10120}, {169032: 10125}):
         session = S.session(sid, "alice")
         flat = FlatList(source, S, session, D.PRAGUE_SERIES, 25, extra)
         with pytest.raises(ResearchError) as e:
@@ -240,7 +240,7 @@ async def test_census_rows_are_accepted_below_the_census_root_only(env):
     await flat.open()
     assert flat.total == len(D.HOUSES[D.NOVE_MESTO])
     with pytest.raises(ResearchError):
-        await FlatList(source, S, S.session(sid, "alice"), D.NOVE_MESTO, 25, {168667: 10120}).open()
+        await FlatList(source, S, S.session(sid, "alice"), D.NOVE_MESTO, 25, {169032: 10120}).open()
 
 
 def test_strict_comparison_keeps_diacritic_spellings_apart():
